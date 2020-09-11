@@ -18,6 +18,8 @@ Watershed implementation for African American samples from GTEx
 │   ├── outlier_calling
 │   └── rare_variants
 ├── raw_data
+│   ├── 1KG
+│   └── GTEx
 └── WatershedAFR
     ├── code
     │   ├── analysis
@@ -32,6 +34,36 @@ Watershed implementation for African American samples from GTEx
     ├── pipelines
     └── README.md
 ```
+
+No absolute paths are hard coded into scripts. `data` and `raw_data` directories are assigned local variable names.
+
+```
+# Defining root, data, and raw data directories
+rootdir=/scratch/groups/abattle4/victor/WatershedAFR
+datadir=${rootdir}/data
+rawdir=${rootdir}/raw_data
+
+# Making directories
+mkdir ${rootdir}
+
+mkdir ${datadir}
+mkdir ${datadir}/data_prep
+mkdir ${datadir}/figures
+mkdir ${datadir}/models
+mkdir ${datadir}/outlier_calling
+mkdir ${datadir}/rare_variants
+
+mkdir ${rawdir}
+mkdir ${rawdir}/1KG
+mkdir ${rawdir}/GTEx
+
+# Clone the repo
+git clone https://github.com/battle-lab/WatershedAFR.git ${rootdir}/WatershedAFR
+
+```
+
+### Raw data
+See [data_sources.md](https://github.com/battle-lab/WatershedAFR/blob/master/data_sources.md)
 
 ## Preprocessing pipeline
 Goal: Preprocess raw data to be used as input for training Watershed models.
@@ -107,8 +139,6 @@ to-do
 
 #### Confirm rarity of GTEx variants in 1KG and gnomAD
 python scripts to do this
-
-
 
 
 ## Training Watershed models
