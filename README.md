@@ -2,10 +2,21 @@
 Watershed implementation for African American samples from GTEx
 
 
+Parts of this code were originally written by:
+* Emily Tsang (https://github.com/ektsang)
+* Joe Davis (https://github.com/joed3)
+* Yungil Kim (https://github.com/ipw012)
+* Nicole Ferraro (https://github.com/nmferraro5)
+* Ben Strober (https://github.com/BennyStrobes)
+
 ## Setup
 
 ### Dependencies
-* have YAML for python dependencies
+
+Install python and dependencies from `environment.yml`
+```
+conda env create -f environment.yml
+```
 
 
 ### Directory structure
@@ -30,6 +41,7 @@ Watershed implementation for African American samples from GTEx
     │   │   └── rare_variants
     │   └── Watershed
     ├── data_sources.md
+    ├── environment.yml
     ├── LICENSE
     ├── pipelines
     └── README.md
@@ -80,6 +92,23 @@ Generate file mapping sample identifiers to tissues. Restrict to samples that pa
 cat ${rawdir}/GTEx/GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt | tail -n+2 | cut -f1,7,17 | \
   sed 's/ - /_/' | sed 's/ /_/g' | sed 's/(//' | sed 's/)//' | sed 's/c-1/c1/' | \
   awk '$3=="RNASEQ" {print $1"\t"$2}' | sort -k 1 > ${datadir}/data_prep/gtex_v8_samples_tissues.txt
+```
+
+Split combined TPM and read counts by tissue.
+```
+# split TPM
+OUT=${datadir}/data_prep/PEER
+GTEX=${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_tpm.gct.gz
+SAMPLE=${datadir}/data_prep/gtex_v8_samples_tissues.txt
+END='.tpm.txt'
+python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX --out $OUT --sample $SAMPLE --end $END
+
+
+# split read counts
+GTEX=${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_reads.gct.gz
+END='.reads.txt'
+python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX --out $OUT --sample $SAMPLE --end $END
+
 ```
 
 #### Generate PEER corrected data (includes non-EAs) with covariates removed
