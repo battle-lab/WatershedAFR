@@ -42,7 +42,9 @@ No absolute paths are hard coded into scripts. `data` and `raw_data` directories
 rootdir=/scratch/groups/abattle4/victor/WatershedAFR
 datadir=${rootdir}/data
 rawdir=${rootdir}/raw_data
+```
 
+```
 # Making directories
 mkdir ${rootdir}
 
@@ -70,8 +72,15 @@ Goal: Preprocess raw data to be used as input for training Watershed models.
 
 ### Expression data correction and normalization
 
+
 #### Generate tpm and read count matrices from GTEx V8
-to-do
+
+Generate file mapping sample identifiers to tissues. Restrict to samples that pass RNA-seq QC (marked as RNASEQ in SMAFRZE column).
+```
+cat ${rawdir}/GTEx/GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt | tail -n+2 | cut -f1,7,17 | \
+  sed 's/ - /_/' | sed 's/ /_/g' | sed 's/(//' | sed 's/)//' | sed 's/c-1/c1/' | \
+  awk '$3=="RNASEQ" {print $1"\t"$2}' | sort -k 1 > ${datadir}/data_prep/gtex_v8_samples_tissues.txt
+```
 
 #### Generate PEER corrected data (includes non-EAs) with covariates removed
 to-do
