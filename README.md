@@ -66,6 +66,9 @@ mkdir ${datadir}/figures
 mkdir ${datadir}/models
 mkdir ${datadir}/outlier_calling
 mkdir ${datadir}/rare_variants
+mkdir ${datadir}/rare_variants/1KG
+mkdir ${datadir}/rare_variants/1KG/genes_padded10kb_PCandlinc_only
+
 
 mkdir ${rawdir}
 mkdir ${rawdir}/1KG
@@ -95,7 +98,7 @@ cat ${rawdir}/GTEx/GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt | tail -n
 ```
 
 Split combined TPM and read counts by tissue.
-```
+``` 
 # split TPM
 OUT=${datadir}/data_prep/PEER
 GTEX=${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_tpm.gct.gz
@@ -112,71 +115,200 @@ python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX --out 
 ```
 
 #### Generate PEER corrected data (includes non-EAs) with covariates removed
-to-do
+
+<!---
+For each tissue, filter for genes with > 20% individuals with TPM > 0.1 and read count > 6, Log2(tpm + 2) transfrom the data, and then z-transform.
+```
+Rscript code/preprocessing/data_prep/preprocess_expr.R
+```
+
+Generate list of top eQTLs for each gene in each tissue, extract from VCF, convert to number alternative alleles
+```
+
+
+bash code/preprocessing/data_prep/get_genotypes.sh
+```
+--->
+
 
 #### Make lists of individuals
-Make list of all individuals from GTEx v8. Make list of all individuals with reported African American ancestry and European ancestry.
-* `${RAREVARDIR}/reference/gtex_v8_individuals_all_normalized_samples.txt` - All 948 individuals from GTEx v8
-* `${RAREVARDIR}/reference/gtex_v8_wgs_individuals.txt` - All 838 individuals from GTEx v8 with WGS data
-* `${RAREVARDIR}/reference/gtex_v8_individuals_AFA.txt` - 121 African American individuals from GTEx v8
-* `${RAREVARDIR}/reference/gtex_v8_wgs_individuals_AFA.txt` - 103 African American individuals from GTEx v8 with WGS data
-* `${RAREVARDIR}/reference/gtex_v8_individuals_EUR.txt` - 804 European individuals from GTEx v8
-* `${RAREVARDIR}/reference/gtex_v8_wgs_individuals_EUR.txt` - 714 European individuals from GTEx v8 with WGS 
-```{bash gtex_individuals, eval=FALSE, cache=TRUE}
+Make list of all individuals from GTEx v8. Make list of all individuals with reported African American ancestry and European ancestry. Requires `bcftools`
+* `${datadir}/data_prep/gtex_v8_individuals_all.txt` - All 948 individuals from GTEx v8
+* `${datadir}/data_prep/gtex_v8_wgs_individuals.txt` - All 838 individuals from GTEx v8 with WGS data
+* `${datadir}/data_prep/gtex_v8_individuals_AFA.txt` - 121 African American individuals from GTEx v8
+* `${datadir}/data_prep/gtex_v8_wgs_individuals_AFA.txt` - 103 African American individuals from GTEx v8 with WGS data
+* `${datadir}/data_prep/gtex_v8_individuals_EUR.txt` - 804 European individuals from GTEx v8
+* `${datadir}/data_prep/gtex_v8_wgs_individuals_EUR.txt` - 714 European individuals from GTEx v8 with WGS 
+```bash
 # All individuals
 ## list of all individuals from GTEx v8 (some do not have WGS data)
-cat ${RAREVARDIR}/data/GTEx/GTEx_Analysis_2017-06-05_v8_Annotations_SubjectPhenotypesDS.txt | awk -F "\t" 'NR>1{print $1}' \
-> ${RAREVARDIR}/reference/gtex_v8_individuals_all_normalized_samples.txt
+cat ${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_Annotations_SubjectPhenotypesDS.txt | awk -F "\t" 'NR>1{print $1}' \
+> ${datadir}/data_prep/gtex_v8_individuals_all.txt
+
 
 ## list of all individuals from GTEx v8 with WGS data
-vcf-query -l ${RAREVARDIR}/data/GTEx/GTEx_Analysis_2017-06-05_v8_WholeGenomeSeq_838Indiv_Analysis_Freeze.SHAPEIT2_phased.vcf.gz \
-> ${RAREVARDIR}/reference/gtex_v8_wgs_individuals.txt
+bcftools query -l ${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_WholeGenomeSeq_838Indiv_Analysis_Freeze.SHAPEIT2_phased.vcf.gz \
+> ${datadir}/data_prep/gtex_v8_wgs_individuals_all.txt
 
 # African American individuals
 ## list of all African American individuals from GTEx v8 (some do not have WGS data)
-cat ${RAREVARDIR}/data/GTEx/GTEx_Analysis_2017-06-05_v8_Annotations_SubjectPhenotypesDS.txt | awk -F '\t' '{if ($5 == 2) print $1;}' \
-> ${RAREVARDIR}/reference/gtex_v8_individuals_AFA.txt
+cat ${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_Annotations_SubjectPhenotypesDS.txt | awk -F '\t' '{if ($5 == 2) print $1;}' \
+> ${datadir}/data_prep/gtex_v8_individuals_AFA.txt
 
 ## list of all African American individuals from GTEx v8 with WGS data
-awk 'NR==FNR { lines[$0]=1; next } $0 in lines' ${RAREVARDIR}/reference/gtex_v8_wgs_individuals.txt ${RAREVARDIR}/reference/gtex_v8_individuals_AFA.txt > ${RAREVARDIR}/reference/gtex_v8_wgs_individuals_AFA.txt
-
+awk 'NR==FNR { lines[$0]=1; next } $0 in lines' ${datadir}/data_prep/gtex_v8_wgs_individuals_all.txt \
+${datadir}/data_prep/gtex_v8_individuals_AFA.txt > ${datadir}/data_prep/gtex_v8_wgs_individuals_AFA.txt
 
 # European individuals
 # list of all European individuals from GTEx v8 (some do not have WGS data)
-cat ${RAREVARDIR}/data/GTEx/GTEx_Analysis_2017-06-05_v8_Annotations_SubjectPhenotypesDS.txt | awk -F '\t' '{if ($5 == 3) print $1;}' \
-> ${RAREVARDIR}/reference/gtex_v8_individuals_EUR.txt
+cat ${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_Annotations_SubjectPhenotypesDS.txt | awk -F '\t' '{if ($5 == 3) print $1;}' \
+> ${datadir}/data_prep/gtex_v8_individuals_EUR.txt
 
-# list of all African American individuals from GTEx v8 with WGS data
-awk 'NR==FNR { lines[$0]=1; next } $0 in lines' ${RAREVARDIR}/reference/gtex_v8_wgs_individuals.txt ${RAREVARDIR}/reference/gtex_v8_individuals_EUR.txt > ${RAREVARDIR}/reference/gtex_v8_wgs_individuals_EUR.txt
+# list of all European individuals from GTEx v8 with WGS data
+awk 'NR==FNR { lines[$0]=1; next } $0 in lines' ${datadir}/data_prep/gtex_v8_wgs_individuals_all.txt \
+${datadir}/data_prep/gtex_v8_individuals_EUR.txt > ${datadir}/data_prep/gtex_v8_wgs_individuals_EUR.txt
 ```
 
 #### Make flat files from normalized data
+<!---
 ```{bash, eval=FALSE, cache=TRUE}
 python preprocessing/data_prep/gather_filter_normalized_expression_v8.py
 ```
+--->
 
 #### Prepare gene annotations from gencode
-This list will be used to filter out genes for those that are protein coding and lincRNA coding
-**Resulting `reference/gencode.v26.genes.v8.patched_contigs_genetypes_autosomal.txt` may be empty for some reason**
-```{bash gencode_genes, eval=FALSE, cache=TRUE}
-bash preprocessing/process.reference.files_v8.sh ${RAREVARDIR}/data/GTEx/gencode.v26.GRCh38.genes.gtf.gz ${RAREVARDIR}/download/gencode/gencode.v26.annotation.gtf
+
+Manipulate annotation files in various ways to make them easier to use downstream.
+Outputs
+* `${datadir}/data_prep/gencode.v26.GRCh38.genes.bed` - Gene bed file
+* `${datadir}/data_prep/gencode.v26.GRCh38.genes_padded10kb.bed` - Gene bed file with 10kb added on either side
+* `${datadir}/data_prep/gencode.v26.GRCh38.genes_genetypes_autosomal.txt` - Genetypes
+* `${datadir}/data_prep/gencode.v26.GRCh38.genes_padded10kb_PCandlinc_only.bed` - Gene bed file with protein coding and lincRNA coding genes padded by 10kb
+```
+bash ${rootdir}/WatershedAFR/code/preprocessing/data_prep/process_reference_files.sh \
+${rawdir}/GTEx/gencode.v26.GRCh38.genes.gtf \
+${datadir}/data_prep
 ```
 
 
 ### Outlier calling
+<!---
 Using outlier calling method from watershed paper
 
 https://github.com/nmferraro5/correlation_outliers
+--->
+
+`/work-zfs/abattle4/bstrober/rare_variant/gtex_v8/splicing/input_data/outlier_calls/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt`
+Save to `${datadir}/outlier_calling`
 
 ### Finding rare variants
 
-#### Get allele frequency from 1KG for AFR
+#### Filter for variants within 10kb of TSS of genes that are protien coding and lincRNA coding
+Save to `${datadir}/rare_variants`
 
-#### Get allele frequency from gnomAD for AFR
-to-do
+```bash
+# GTEx variants (keep SNPs only)
+gtex=${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_WholeGenomeSeq_838Indiv_Analysis_Freeze.SHAPEIT2_phased.vcf.gz
+regions=${datadir}/data_prep/gencode.v26.GRCh38.genes_padded10kb_PCandlinc_only.bed
+outdir=${datadir}/rare_variants
 
-#### Confirm rarity of GTEx variants in 1KG and gnomAD
-python scripts to do this
+bcftools view --regions-file $regions --types snps $gtex | bcftools sort | bcftools norm --rm-dup snps \
+--output ${outdir}/gtex.vcf.gz --output-type z
+bcftools index --tbi ${outdir}/gtex.vcf.gz
+
+# 1KG variants
+outdir=${datadir}/rare_variants/1KG/genes_padded10kb_PCandlinc_only
+for i in {1..22}
+do
+  infile=${rawdir}/1KG/ALL.chr${i}.shapeit2_integrated_v1a.GRCh38.20181129.phased.vcf.gz
+  outfile=`basename $infile | sed 's/.vcf.gz//'`
+  outfile=${outdir}/${outfile}.genes_padded10kb_PCandlinc_only.vcf.gz
+  bcftools view --drop-genotypes --regions-file $regions --output-file $outfile --output-type z $infile
+done
+
+# concatenate chromosome VCFs from 1KG into one VCF
+ls -1 ${outdir}/*.vcf.gz | sort -V > ${outdir}/chrom_list.txt
+
+bcftools concat --file-list ${outdir}/chrom_list.txt | bcftools sort | \
+bcftools norm --rm-dup snps --output ${datadir}/rare_variants/1KG.padded10kb_PCandlinc_only.vcf.gz --output-type z
+bcftools index --tbi ${datadir}/rare_variants/1KG.padded10kb_PCandlinc_only.vcf.gz
+```
+
+#### Subset GTEx VCF by population
+Subset the GTEx VCF by population and compute allele frequencies within that population.
+
+European only VCF
+```bash
+gtex=${datadir}/rare_variants/gtex.vcf.gz
+eur_samples=${datadir}/data_prep/gtex_v8_wgs_individuals_EUR.txt
+outdir=${datadir}/rare_variants
+
+bcftools view --samples-file $eur_samples $gtex | bcftools +fill-tags --output ${outdir}/gtex_EUR.vcf.gz --output-type z -- -t AF
+```
+
+African only VCF
+```
+gtex=${datadir}/rare_variants/gtex.vcf.gz
+afr_samples=${datadir}/data_prep/gtex_v8_wgs_individuals_AFA.txt
+outdir=${datadir}/rare_variants
+```
+
+
+#### Filter GTEx VCF for rare variants (MAF < 0.01)
+
+European
+```bash
+gtex=${outdir}/gtex_EUR.vcf.gz
+outdir=${datadir}/rare_variants
+
+bcftools view --include 'AF<0.01 & AF>0' --output-file ${outdir}/gtex_EUR_rare.vcf.gz --output-type z $gtex
+```
+
+African
+```
+gtex=${outdir}/gtex_AFR.vcf.gz
+outdir=${datadir}/rare_variants
+```
+
+#### Confirm rarity of GTEx variants in 1KG
+Quality control to check that rare variants in GTEx are also rare in 1KG population.
+
+European rare variants
+```bash
+# Filter 1KG for variants in GTEx that have AF >= 0.01
+outdir=${datadir}/rare_variants
+_1kg=${outdir}/1KG.padded10kb_PCandlinc_only.vcf.gz
+gtex=${outdir}/gtex_EUR_rare.vcf.gz
+
+bcftools query -f '%CHROM\t%POS0\t%END\t%ID\n' $gtex > ${outdir}/gtex_EUR_rare.bed
+bcftools view --regions-file ${outdir}/gtex_EUR_rare.bed \
+--include 'INFO/EUR_AF >= 0.01' --output-file ${outdir}/1KG.EUR_common.vcf.gz --output-type z $_1kg
+
+bcftools query -f '%CHROM\t%POS0\t%END\t%ID\n' ${outdir}/1KG.EUR_common.vcf.gz > ${outdir}/1KG.EUR_common.bed
+
+# Remove common variants from GTEx
+bedtools intersect -v -a $gtex -b ${outdir}/1KG.EUR_common.bed -header | \
+bcftools convert --output ${outdir}/gtex_EUR_rare.QC.vcf.gz --output-type z
+```
+
+African rare variants
+```
+```
+
+
+#### Get list of rare variants per each gene-individual pair
+
+
+```bash
+
+# prints samples with alternate allele
+bcftools query -f'[%CHROM:%POS %SAMPLE\n]' --include 'GT="alt"' ${datadir}/rare_variants/gtex_EUR_rare.QC.vcf.gz | head -3
+
+```
+
+R code
+
+
 
 
 ## Training Watershed models
