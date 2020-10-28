@@ -49,7 +49,7 @@ conda env create -f environment.yml
 
 No absolute paths are hard coded into scripts. `data` and `raw_data` directories are assigned local variable names.
 
-```
+```bash
 # Defining root, data, and raw data directories
 rootdir=/scratch/groups/abattle4/victor/WatershedAFR
 datadir=${rootdir}/data
@@ -68,6 +68,8 @@ mkdir ${datadir}/outlier_calling
 mkdir ${datadir}/rare_variants
 mkdir ${datadir}/rare_variants/1KG
 mkdir ${datadir}/rare_variants/1KG/genes_padded10kb_PCandlinc_only
+mkdir ${datadir}/rare_variants/rv_bed_EUR
+mkdir ${datadir}/rare_variants/rv_bed_AFR
 
 
 mkdir ${rawdir}
@@ -243,6 +245,7 @@ gtex=${datadir}/rare_variants/gtex.vcf.gz
 eur_samples=${datadir}/data_prep/gtex_v8_wgs_individuals_EUR.txt
 outdir=${datadir}/rare_variants
 
+# bcftools +fill-tags recomputes AF after we remove samples
 bcftools view --samples-file $eur_samples $gtex | bcftools +fill-tags --output ${outdir}/gtex_EUR.vcf.gz --output-type z -- -t AF
 ```
 
@@ -300,15 +303,41 @@ African rare variants
 
 
 ```bash
+outliers=${datadir}/outlier_calling/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt
+regions=${datadir}/data_prep/gencode.v26.GRCh38.genes_padded10kb_PCandlinc_only.bed
+gtex=${datadir}/rare_variants/gtex_EUR_rare.QC.vcf.gz
 
-# prints samples with alternate allele
-bcftools query -f'[%CHROM:%POS %SAMPLE\n]' --include 'GT="alt"' ${datadir}/rare_variants/gtex_EUR_rare.QC.vcf.gz | head -3
+# Make list of samples with each rare variant. Position is 0-based like in bed files
+echo -e "CHROM\tPOS\tREF\tALT\tSAMPLE" > ${datadir}/rare_variants/gtex_EUR_rare.QC.indiv.txt
+bcftools query -f'[%CHROM\t%POS0\t%REF\t%ALT\t%SAMPLE\n]' --include 'GT="alt"' $gtex \
+>> ${datadir}/rare_variants/gtex_EUR_rare.QC.indiv.txt
 
 ```
 
 R code
+Create two bed files for each individual:
+* 10kb window before the TSS of the gene in the gene-individual pair
+* all rare variants belonging to the individual
+```
+Rscript code/preprocessing/rare_variants/bed_prep.R
+```
 
+Get list of rare variants per each gene-individual pair
+```
+outdir=${datadir}/rare_variants/rv_bed_EUR
 
+while IFS='' read -r indiv || [ -n "${indiv}" ]; do
+    regions=${datadir}/rare_variants/rv_bed_EUR/${indiv}.gene-indiv.bed
+    rv=${datadir}/rare_variants/rv_bed_EUR/${indiv}.rv.bed
+    
+    bedtools intersect -wa -wb -a $rv -b $regions > ${outdir}/${indiv}.rv_sites.bed
+
+done < ${outdir}/indiv_list
+
+cat $(ls ${outdir}/*.rv_sites.bed) > ${outdir}/all_rv_sites.bed
+
+Rscript code/preprocessing/rare_variants/gene_indiv_rare_variants.R
+```
 
 
 ## Training Watershed models

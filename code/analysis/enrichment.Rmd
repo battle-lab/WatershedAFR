@@ -1,0 +1,95 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    pairs.df_print: paged
+---
+
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(data.table)
+library(ggplot2)
+
+# files needed
+z_scores_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/outlier_calling/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt'
+rare_var_pairs_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/rare_variants/gene-EUR-rv.txt' # table of gene-individual pairs with their rare variants
+
+# read in files needed
+z_scores = read.table(z_scores_file, header=TRUE, check.names = FALSE) # tidy table with z scores for gene-individual pairs
+rare_var_pairs = read.table(rare_var_pairs_file, header=TRUE, check.names = FALSE) # table of gene-individual pairs with their rare variants
+
+# get Z scores on gene-individual pairs with at least 1 rare variant within 10kb of gene TSS
+z_scores$easykey = paste0(z_scores$Gene,z_scores$Ind)
+rare_var_pairs$easykey = paste0(rare_var_pairs$Gene,rare_var_pairs$Ind)
+# remove "duplicate" gene-individual pairs with rare variants
+rare_var_pairs = rare_var_pairs[!duplicated(rare_var_pairs$easykey),]
+
+
+pairs.df = z_scores[,c("easykey","Gene","Ind", "MedZ")]
+rm(z_scores)
+# add column to pairs.df which indicates if the given gene-individual pair has at least 1 rare variant within 10kb of gene TSS
+pairs.df$has_rare = ifelse(pairs.df$easykey %in% rare_var_pairs$easykey,1,0)
+rm(rare_var_pairs)
+
+# compute enrichment at various Zscore thresholds
+zscore_thresh_list = seq(1,5, 0.5)
+
+# determine inlier/outlier status based on Zscore thresholds
+for (thresh in zscore_thresh_list) {
+  pairs.df[[paste0("outlier_status_at_thresh_",thresh)]] = ifelse(abs(pairs.df$MedZ) > thresh, "outlier","inlier")
+}
+
+pairs.df = pairs.df %>% 
+    gather(contains("thresh"), key=thresh,value=outlier)
+
+# limit to genes with at least 1 outlier at the given threshold
+count.table.list = list()
+rare.count.table.list = list()
+
+for (i in seq_along(zscore_thresh_list)){
+  t = zscore_thresh_list[i]
+  tmp = filter(pairs.df, outlier == "outlier", thresh == paste0("outlier_status_at_thresh_",t))
+  genes_keep = unique(tmp$Gene) # genes with at least 1 outlier individual
+
+  pairs.at.thresh.df = filter(pairs.df, Gene %in% genes_keep, thresh == paste0("outlier_status_at_thresh_",t))
+
+  # frequency table to count inliers and outliers with or without rare variants
+  count.table.list[[i]] = pairs.at.thresh.df %>%
+    group_by(thresh) %>%
+    count(outlier) %>%
+    pivot_wider(names_from=outlier,values_from=n) %>%
+    rename(outlier_all_pairs=outlier, inlier_all_pairs=inlier)
+
+  # frequency table to count inliers and outliers (with  rare variants)
+  rare.count.table.list[[i]] = pairs.at.thresh.df %>%
+    filter(has_rare == 1) %>%
+    group_by(thresh) %>%
+    count(outlier) %>%
+    pivot_wider(names_from=outlier,values_from=n) %>%
+    rename(outlier_rare_pairs=outlier, inlier_rare_pairs=inlier)
+}
+
+# combine count tables together
+count.table = rbindlist(count.table.list)
+rare.count.table = rbindlist(rare.count.table.list)
+
+# compute enrichment
+enrichment.df  = merge(count.table,rare.count.table,by="thresh",all=T) %>% mutate(numerator=outlier_rare_pairs/outlier_all_pairs, denominator=inlier_rare_pairs/inlier_all_pairs, enrichment=numerator/denominator)
+
+# confidence intervals
+enrichment.df = enrichment.df %>% mutate(log_se = sqrt(1/outlier_rare_pairs - 1/outlier_all_pairs + 1/inlier_rare_pairs - 1/inlier_all_pairs), lower_CI = enrichment * exp(-1.96*log_se), upper_CI = enrichment * exp(1.96*log_se))
+
+
+# sorting rows by z score threshold
+enrichment.df$sortcol = as.numeric(gsub("outlier_status_at_thresh_", "", enrichment.df$thresh))
+enrichment.df = arrange(enrichment.df, sortcol)
+
+enrichment.plot = ggplot(enrichment.df, aes(x = sortcol, y = enrichment)) +
+  geom_point(size = 2) + 
+  geom_text(aes(label = outlier_all_pairs), hjust = 0.7, vjust = -4) + 
+  geom_errorbar(aes(ymax = upper_CI, ymin = lower_CI))
+print(enrichment.plot + labs(title="Enrichment of rare variants in outlier genes \n(genes have at least 1 outlier individual)", x = "Z-score threshold"))
+
+```
