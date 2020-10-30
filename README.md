@@ -87,6 +87,7 @@ See [data_sources.md](https://github.com/battle-lab/WatershedAFR/blob/master/dat
 ## Preprocessing pipeline
 Goal: Preprocess raw data to be used as input for training Watershed models.
 
+<!---
 ### Expression data correction and normalization
 
 
@@ -118,7 +119,7 @@ python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX --out 
 
 #### Generate PEER corrected data (includes non-EAs) with covariates removed
 
-<!---
+
 For each tissue, filter for genes with > 20% individuals with TPM > 0.1 and read count > 6, Log2(tpm + 2) transfrom the data, and then z-transform.
 ```
 Rscript code/preprocessing/data_prep/preprocess_expr.R
@@ -171,8 +172,9 @@ awk 'NR==FNR { lines[$0]=1; next } $0 in lines' ${datadir}/data_prep/gtex_v8_wgs
 ${datadir}/data_prep/gtex_v8_individuals_EUR.txt > ${datadir}/data_prep/gtex_v8_wgs_individuals_EUR.txt
 ```
 
-#### Make flat files from normalized data
 <!---
+#### Make flat files from normalized data
+
 ```{bash, eval=FALSE, cache=TRUE}
 python preprocessing/data_prep/gather_filter_normalized_expression_v8.py
 ```
@@ -200,6 +202,7 @@ Using outlier calling method from watershed paper
 https://github.com/nmferraro5/correlation_outliers
 --->
 
+GTEx v8 outliers are located in 
 `/work-zfs/abattle4/bstrober/rare_variant/gtex_v8/splicing/input_data/outlier_calls/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt`
 Save to `${datadir}/outlier_calling`
 
@@ -251,9 +254,6 @@ bcftools view --samples-file $eur_samples $gtex | bcftools +fill-tags --output $
 
 African only VCF
 ```
-gtex=${datadir}/rare_variants/gtex.vcf.gz
-afr_samples=${datadir}/data_prep/gtex_v8_wgs_individuals_AFA.txt
-outdir=${datadir}/rare_variants
 ```
 
 
@@ -269,8 +269,6 @@ bcftools view --include 'AF<0.01 & AF>0' --output-file ${outdir}/gtex_EUR_rare.v
 
 African
 ```
-gtex=${outdir}/gtex_AFR.vcf.gz
-outdir=${datadir}/rare_variants
 ```
 
 #### Confirm rarity of GTEx variants in 1KG
@@ -301,20 +299,19 @@ African rare variants
 
 #### Get list of rare variants per each gene-individual pair
 
+##### European
 
+Make list of samples with each rare variant. Position is 0-based like the start position in bed file format
 ```bash
 outliers=${datadir}/outlier_calling/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt
 regions=${datadir}/data_prep/gencode.v26.GRCh38.genes_padded10kb_PCandlinc_only.bed
 gtex=${datadir}/rare_variants/gtex_EUR_rare.QC.vcf.gz
 
-# Make list of samples with each rare variant. Position is 0-based like in bed files
 echo -e "CHROM\tPOS\tREF\tALT\tSAMPLE" > ${datadir}/rare_variants/gtex_EUR_rare.QC.indiv.txt
 bcftools query -f'[%CHROM\t%POS0\t%REF\t%ALT\t%SAMPLE\n]' --include 'GT="alt"' $gtex \
 >> ${datadir}/rare_variants/gtex_EUR_rare.QC.indiv.txt
-
 ```
 
-R code
 Create two bed files for each individual:
 * 10kb window before the TSS of the gene in the gene-individual pair
 * all rare variants belonging to the individual
@@ -323,6 +320,7 @@ Rscript code/preprocessing/rare_variants/bed_prep.R
 ```
 
 Get list of rare variants per each gene-individual pair
+File is saved to `${datadir}/rare_variants/gene-EUR-rv.txt`
 ```
 outdir=${datadir}/rare_variants/rv_bed_EUR
 
@@ -338,6 +336,8 @@ cat $(ls ${outdir}/*.rv_sites.bed) > ${outdir}/all_rv_sites.bed
 
 Rscript code/preprocessing/rare_variants/gene_indiv_rare_variants.R
 ```
+
+##### African
 
 
 ## Training Watershed models
