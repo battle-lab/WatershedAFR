@@ -298,43 +298,54 @@ African rare variants
 
 
 #### Get list of rare variants per each gene-individual pair
+File is saved to `${datadir}/rare_variants/gene-EUR-rv.txt`
+Uses bcftools and bedtools.
 
 ##### European
 
-Make list of samples with each rare variant. Position is 0-based like the start position in bed file format
 ```bash
-outliers=${datadir}/outlier_calling/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt
-regions=${datadir}/data_prep/gencode.v26.GRCh38.genes_padded10kb_PCandlinc_only.bed
 gtex=${datadir}/rare_variants/gtex_EUR_rare.QC.vcf.gz
+outliers=${datadir}/outlier_calling/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt
+european=${datadir}/data_prep/gtex_v8_wgs_individuals_EUR.txt
+regions=${datadir}/data_prep/gencode.v26.GRCh38.genes_padded10kb_PCandlinc_only.bed
+bed_outdir=${datadir}/rare_variants/rv_bed_EUR
+outdir=${datadir}/rare_variants
 
+# Make list of samples with each rare variant. Position is 0-based like the start position in bed file format
 echo -e "CHROM\tPOS\tREF\tALT\tSAMPLE" > ${datadir}/rare_variants/gtex_EUR_rare.QC.indiv.txt
 bcftools query -f'[%CHROM\t%POS0\t%REF\t%ALT\t%SAMPLE\n]' --include 'GT="alt"' $gtex \
 >> ${datadir}/rare_variants/gtex_EUR_rare.QC.indiv.txt
-```
 
-Create two bed files for each individual:
-* 10kb window before the TSS of the gene in the gene-individual pair
-* all rare variants belonging to the individual
-```
-Rscript code/preprocessing/rare_variants/bed_prep.R
-```
 
-Get list of rare variants per each gene-individual pair
-File is saved to `${datadir}/rare_variants/gene-EUR-rv.txt`
-```
-outdir=${datadir}/rare_variants/rv_bed_EUR
+#Create two bed files for each individual:
+#- 10kb window before the TSS of the gene in the gene-individual pair
+#- all rare variants belonging to the individual
 
+Rscript code/preprocessing/rare_variants/bed_prep.R \
+--outliers=$outliers \
+--population=$european \
+--regions=$regions \
+--indiv_at_rv=${datadir}/rare_variants/gtex_EUR_rare.QC.indiv.txt \
+--outdir=$bed_outdir
+
+
+# Find overlap between gene-individual pair's region and rare variants
 while IFS='' read -r indiv || [ -n "${indiv}" ]; do
     regions=${datadir}/rare_variants/rv_bed_EUR/${indiv}.gene-indiv.bed
     rv=${datadir}/rare_variants/rv_bed_EUR/${indiv}.rv.bed
     
-    bedtools intersect -wa -wb -a $rv -b $regions > ${outdir}/${indiv}.rv_sites.bed
+    bedtools intersect -wa -wb -a $rv -b $regions > ${bed_outdir}/${indiv}.rv_sites.bed
 
-done < ${outdir}/indiv_list
+done < ${bed_outdir}/indiv_list
 
-cat $(ls ${outdir}/*.rv_sites.bed) > ${outdir}/all_rv_sites.bed
+cat $(ls ${bed_outdir}/*.rv_sites.bed) > ${bed_outdir}/all_rv_sites.bed
 
-Rscript code/preprocessing/rare_variants/gene_indiv_rare_variants.R
+
+#Get list of rare variants per each gene-individual pair
+Rscript code/preprocessing/rare_variants/gene_indiv_rare_variants.R \
+--rv_sites=${bed_outdir}/all_rv_sites.bed  \
+--popname=EUR \
+--outdir=$outdir
 ```
 
 ##### African
