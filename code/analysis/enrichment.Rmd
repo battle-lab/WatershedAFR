@@ -1,12 +1,12 @@
 ---
-title: "R Notebook"
+title: "Enrichment"
 output:
   html_document:
     pairs.df_print: paged
 ---
 
 
-```{r}
+```{r eurofiles, cache=TRUE}
 library(tidyr)
 library(dplyr)
 library(data.table)
@@ -17,17 +17,61 @@ library(ggplot2)
 # files needed for european variants
 z_scores_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/outlier_calling/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt'
 rare_var_pairs_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/rare_variants/gene-EUR-rv.txt' # table of gene-individual pairs with their rare variants
-pop_list_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep/gtex_v8_wgs_individuals_EUR.txt'
+pop_list_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep/gtex_v8_wgs_individuals_EUR.txt'  #list of samples from the desired population
+```
 
+```{r functiondev}
+itsafunction <- function(pop_subset_file, zscore_file, rare_var_pairs_file, thresholds=seq(1,5, 0.5)){
+
+
+pop_list <- as.character(read.table(pop_list_file, header = FALSE)$V1)
+
+rare_var_pairs <- read.table(rare_var_pairs_file, header=TRUE, check.names = FALSE) %>%
+  mutate(easykey = paste0(Gene,Ind))
+# remove "duplicate" gene-individual pairs with rare variants NOTE: Only first occurance in table is kept
+rare_var_pairs <- rare_var_pairs[!duplicated(rare_var_pairs$easykey),]
+
+# create a subtable that will be more useful 
+pairs.df.pop = read.table(z_scores_file, header=TRUE, check.names = FALSE) %>%
+  mutate(easykey = paste0(Gene,Ind)) %>% # create an id column for gene-indiv pairs
+  select(easykey,Gene,Ind,MedZ) %>%
+  filter(Ind %in% pop_list) %>% #limit pairs.df.pop to individuals within the population
+  mutate(has_rare=ifelse(easykey %in% rare_var_pairs$easykey,1,0)) # add column to pairs.df.pop indicating if the given gene-individual pair has at least 1 rare variant within 10kb of gene TSS
+
+# determine inlier/outlier status based on Zscore thresholds
+# for (thresh in zscore_thresh_list) {
+#   pairs.df.pop[[paste0("outlier_status_at_thresh_",thresh)]] = ifelse(abs(pairs.df.pop$MedZ) > thresh, "outlier","inlier")
+# }
+# determine inlier/outlier status based on Zscore thresholds -- using apply for future parallelization cababilities
+outlier_status <- as.data.frame(sapply(thresholds, function(x){
+  tmp <- ifelse(abs(pairs.df.pop$MedZ) > thresh, "outlier","inlier")
+  return(tmp)
+}), stringsAsFactors=FALSE)
+colnames(outlier_status) <- paste0("outlier_status_at_thresh_",thresholds)
+
+pairs.df.pop <- cbind(pairs.df.pop,outlier_status)
+
+
+pairs.df.pop <- pairs.df.pop %>% 
+    gather(contains("thresh"), key=thresh,value=outlier)
+}
+
+
+
+```
+
+
+
+```{r europrep, cache=TRUE, eval=FALSE}
 # read in files needed
 z_scores = read.table(z_scores_file, header=TRUE, check.names = FALSE) # tidy table with z scores for gene-individual pairs
 rare_var_pairs = read.table(rare_var_pairs_file, header=TRUE, check.names = FALSE) # table of gene-individual pairs with their rare variants
-pop_list = as.character(read.table(pop_list_file, header = FALSE)$V1) 
+pop_list = as.character(read.table(pop_list_file, header = FALSE)$V1)  #list of samples from the desired population list, pre-made
 
 # get Z scores on gene-individual pairs with at least 1 rare variant within 10kb of gene TSS
 z_scores$easykey = paste0(z_scores$Gene,z_scores$Ind)
 rare_var_pairs$easykey = paste0(rare_var_pairs$Gene,rare_var_pairs$Ind)
-# remove "duplicate" gene-individual pairs with rare variants
+# remove "duplicate" gene-individual pairs with rare variants NOTE: Only first occurance in table is kept
 rare_var_pairs = rare_var_pairs[!duplicated(rare_var_pairs$easykey),]
 
 
