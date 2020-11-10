@@ -22,7 +22,7 @@ pop_list_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep/gte
 
 ```{r functiondev}
 itsafunction <- function(pop_subset_file, zscore_file, rare_var_pairs_file, thresholds=seq(1,5, 0.5)){
-
+names(thresholds) <- thresholds
 
 pop_list <- as.character(read.table(pop_list_file, header = FALSE)$V1)
 
@@ -54,9 +54,53 @@ pairs.df.pop <- cbind(pairs.df.pop,outlier_status)
 
 pairs.df.pop <- pairs.df.pop %>% 
     gather(contains("thresh"), key=thresh,value=outlier)
+
+
+# make a df with the number of outlier indiv-gene pairs per gene per threshold and an indicator if there is at least one
+outlier.pairs.tmp <- pairs.df.pop %>% 
+  group_by(thresh,Gene) %>% 
+  mutate(OutlierGenePairs = sum(outlier == "outlier"), GeneKeep = OutlierGenePairs > 0) %>%
+  ungroup()
+# limit to genes with at least 1 outlier at the given threshold
+outlier.pairs <- outlier.pairs.tmp %>% filter(GeneKeep)
+
+
+#EXPERIMENT... can I just use dplyr without lapply rbindlist?
+TEST <- outlier.pairs %>%
+      group_by(thresh) %>%
+      count(outlier) %>%
+      pivot_wider(names_from=outlier,values_from=n) %>%
+      rename(outlier_all_pairs=outlier, inlier_all_pairs=inlier)
 }
 
+count.table.list = list()
+rare.count.table.list = list()
+for (i in seq_along(zscore_thresh_list)){
+  t = zscore_thresh_list[i]
+  tmp = filter(pairs.df.eur, outlier == "outlier", thresh == paste0("outlier_status_at_thresh_",t))
+  genes_keep = unique(tmp$Gene) # genes with at least 1 outlier individual
 
+  pairs.at.thresh.df = filter(pairs.df.eur, Gene %in% genes_keep, thresh == paste0("outlier_status_at_thresh_",t))
+
+  # frequency table to count inliers and outliers with or without rare variants
+  count.table.list[[i]] = pairs.at.thresh.df %>%
+    group_by(thresh) %>%
+    count(outlier) %>%
+    pivot_wider(names_from=outlier,values_from=n) %>%
+    rename(outlier_all_pairs=outlier, inlier_all_pairs=inlier)
+
+  # frequency table to count inliers and outliers (with  rare variants)
+  rare.count.table.list[[i]] = pairs.at.thresh.df %>%
+    filter(has_rare == 1) %>%
+    group_by(thresh) %>%
+    count(outlier) %>%
+    pivot_wider(names_from=outlier,values_from=n) %>%
+    rename(outlier_rare_pairs=outlier, inlier_rare_pairs=inlier)
+}
+
+# combine count tables together
+count.table = rbindlist(count.table.list)
+rare.count.table = rbindlist(rare.count.table.list)
 
 ```
 
@@ -151,12 +195,14 @@ rm(list=ls())
 ```
 
 
-```{r}
+```{r afroprep}
 # files needed for african variants
 z_scores_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/outlier_calling/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt'
 rare_var_pairs_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/rare_variants/gene-AFR-rv.txt' # table of gene-individual pairs with their rare variants
 pop_list_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep/gtex_v8_wgs_individuals_AFR.txt'
+```
 
+```{r africanpop}
 # read in files needed
 z_scores = read.table(z_scores_file, header=TRUE, check.names = FALSE) # tidy table with z scores for gene-individual pairs
 rare_var_pairs = read.table(rare_var_pairs_file, header=TRUE, check.names = FALSE) # table of gene-individual pairs with their rare variants
