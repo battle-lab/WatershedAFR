@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 ## Script to create two bed files for each individual:
-## 1. 10kb window before the TSS of the gene in the gene-individual pair
+## 1. 10kb +/- window around the gene in the gene-individual pair
 ## 2. all rare variants belonging to the individual
 
 
@@ -12,7 +12,7 @@ library(optparse)
 # Read command line arguments
 option_list = list(make_option(c('--outliers'), type = 'character', default = NULL, help = 'multi-tissue outliers with Zscore data'),
                    make_option(c('--population'), type = 'character', default = NULL, help = 'list of samples from a population'),
-                   make_option(c('--regions'), type = 'character', default = NULL, help = 'bed file of 10kb within TSS of protein coding and lincRNA coding genes'),
+                   make_option(c('--regions'), type = 'character', default = NULL, help = 'bed file of 10kb +/- window around the protein coding and lincRNA coding genes'),
                    make_option(c('--indiv_at_rv'), type = 'character', default = NULL, help = 'list of individuals with each rare variant'),
                    make_option(c('--outdir'), type = 'character', default = NULL, help = 'directory to save output bed files'))
 
@@ -29,7 +29,7 @@ outdir = opt$outdir
 print('Reading files...')
 outliers = read.table(outliers_file, header = TRUE, check.names = FALSE)  # multi-tissue outliers
 pop_list = as.character(read.table(pop_list_file, header = FALSE)$V1) # list of individuals from a population (population list)
-regions = read.table(regions_file, col.names = c("CHROM","START","END", "Gene", "SCORE", "STRAND"), check.names = FALSE) # bed file of 10kb within TSS of protein coding and lincRNA coding genes (regions)
+regions = read.table(regions_file, col.names = c("CHROM","START","END", "Gene", "SCORE", "STRAND"), check.names = FALSE) # bed file of 10kb +/- window around the protein coding and lincRNA coding genes
 indiv_at_rv = read.table(indiv_at_rv_file, header = TRUE, check.names = FALSE) # list of individuals with each rare variant (indiv per rare variant)
 print('Done\n')
 

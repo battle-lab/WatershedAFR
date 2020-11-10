@@ -18,6 +18,7 @@ rootname=`basename $gtex | sed 's/.gtf//'`
 gtexprefix=${outdir}/${rootname}
 
 # gene bed file
+# REMEMBER that gtf coordinates are 1-based and bed coordinates are 0-start, half-open
 cat $gtex | awk 'BEGIN{OFS="\t"}{
 if (substr($1,1,1)=="#") {next};
 if ($3!="gene") {next};
@@ -28,36 +29,20 @@ if (substr($1,1,1)!="c") {
   chr=$1
 }
 
-strand=$7
-if (strand=="+") {
-  start=$4-1
-  end=$4
-} else if (strand=="-") {
-  start=$5-1
-  end=$5
-} else {
-  print "no strand information: exiting"
-  exit 1
-}
+start=$4-1
+end=$5
 
 name=substr($10,2,length($10)-3);
 print chr,start,end,name,0,strand
 }' > ${gtexprefix}.bed
 
-# gene bed file with 10kb added before the TSS
+# gene bed file with 10kb added to both ends of the gene
 cat ${gtexprefix}.bed | awk 'BEGIN{OFS="\t"}{
-strand=$6
-if (strand=="+") {
-  low = $2-10000;
-  if (low < 0) {low = 0};
-  print $1, low, $3, $4, $5, strand
-} else if (strand=="-") {
-  print $1, $2, $3+10000, $4, $5, strand
-} else {
-  print "no strand information: exiting"
-  exit 1
-}
+start = $2-10000;
+if (start < 0) {start = 0};
+end = $3+10000;
 
+print $1,start,end,$4,$5,$6
 }' > ${gtexprefix}_padded10kb.bed
 
 # genetypes
