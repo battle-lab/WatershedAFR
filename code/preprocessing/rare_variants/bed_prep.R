@@ -47,6 +47,11 @@ df = left_join(x = outliers, y = regions, by = "Gene")
 df = arrange(df, Ind, CHROM, START)
 indiv_at_rv = arrange(indiv_at_rv, SAMPLE)
 
+# create output directory if it doesn't already exist
+if (!dir.exists(outdir)) {
+dir.create(outdir)
+}
+
 print('Writing list of individuals from gene-individual pairs')
 indiv_list = unique(df$Ind)
 indiv_list_file = paste0(outdir,'/indiv_list')
