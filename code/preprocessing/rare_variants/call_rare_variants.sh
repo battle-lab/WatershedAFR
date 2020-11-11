@@ -15,12 +15,27 @@ pop="EUR"
 
 outliers=${datadir}/outlier_calling/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt
 
+## Check if bcftools and bedtools are available. If not, exit the script
+if ! command -v bcftools &> /dev/null
+then
+    echo "bcftools could not be found"
+    exit
+fi
+
+if ! command -v bedtools &> /dev/null
+then
+    echo "bedtools could not be found"
+    exit
+fi
+
 ## Filter for rare variants within 10kb +/- window around gene body of genes that are protein coding and lincRNA coding
 # Save the resulting VCFs to `gtex.vcf.gz` and `1KG.padded10kb_PCandlinc_only.vcf.gz` in `${datadir}/rare_variants`
 
 echo "*** Filter for rare variants within 10kb +/- window around gene body of genes that are protein coding and lincRNA coding"
 
 # GTEx variants (keep SNPs only)
+echo "**** Filtering GTEx variants"
+
 gtex=${rvdir}/gtex.vcf.gz
 
 bcftools view --regions-file $regions --types snps $gtex_raw | bcftools sort | bcftools norm --rm-dup snps \
@@ -28,6 +43,8 @@ bcftools view --regions-file $regions --types snps $gtex_raw | bcftools sort | b
 bcftools index --tbi $gtex
 
 # 1KG variants
+echo "**** Filtering 1KG variants"
+
 _1kg=${rvdir}/1KG.padded10kb_PCandlinc_only.vcf.gz
 outdir_1kg=${rvdir}/1KG/genes_padded10kb_PCandlinc_only
 
@@ -98,6 +115,8 @@ echo "*** Done"
 echo "*** Get list of rare variants per each gene-individual pair"
 
 # Make list of samples with each rare variant. Position is 0-based like the start position in bed file format
+echo "**** List samples that have each rare variant"
+
 indiv_at_rv=${rvdir}/gtex_${pop}_rare.QC.indiv.txt
 
 echo -e "CHROM\tPOS\tREF\tALT\tSAMPLE" > $indiv_at_rv
@@ -107,6 +126,8 @@ bcftools query -f'[%CHROM\t%POS0\t%REF\t%ALT\t%SAMPLE\n]' --include 'GT="alt"' $
 #Create two bed files for each individual:
 #- 10kb window before and after the gene in the gene-individual pair
 #- all rare variants belonging to the individual
+echo "**** Running bed_prep.R to create bed files for each sample"
+
 bed_outdir=${rvdir}/rv_bed_${pop}
 
 Rscript code/preprocessing/rare_variants/bed_prep.R \
@@ -117,6 +138,8 @@ Rscript code/preprocessing/rare_variants/bed_prep.R \
 --outdir=$bed_outdir
 
 # Find overlap between gene-individual pair's region and rare variants
+echo "**** Matching rare variants to their gene-individual pairs"
+
 rv_sites=${bed_outdir}/all_rv_sites.bed
 
 while IFS='' read -r indiv || [ -n "${indiv}" ]; do
@@ -130,6 +153,8 @@ done < ${bed_outdir}/indiv_list
 cat $(ls ${bed_outdir}/*.rv_sites.bed) > $rv_sites
 
 #Get list of rare variants per each gene-individual pair
+echo "Running gene_indiv_rare_variants.R"
+
 Rscript code/preprocessing/rare_variants/gene_indiv_rare_variants.R \
 --rv_sites=$rv_sites \
 --popname=${pop} \
