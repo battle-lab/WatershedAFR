@@ -61,7 +61,7 @@ outlier.pairs.tmp <- pairs.df.pop %>%
   group_by(thresh,Gene) %>% 
   mutate(OutlierGenePairs = sum(outlier == "outlier"), GeneKeep = OutlierGenePairs > 0) %>%
   ungroup()
-# limit to genes with at least 1 outlier at the given threshold
+# limit to genes pairs where the gene has at least 1 outlier at the given threshold
 outlier.pairs <- outlier.pairs.tmp %>% filter(GeneKeep)
 
 
