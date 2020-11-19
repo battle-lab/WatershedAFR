@@ -41,8 +41,8 @@ colnames(df) = c("Gene","Ind","Chrom","Start","End","Ref","Alt")
 # sort by gene
 df = arrange(df, Gene)
 
-# make each rare variant of the form chrom;position;major_allele;variant_allele
-df = unite(df, RV, sep = ";", Chrom:Alt)
+# # make each rare variant of the form chrom;position;major_allele;variant_allele
+# df = unite(df, RV, sep = ";", Chrom:Alt)
 
 # save
 filename = paste0(outdir,'/gene-', popname, '-rv.txt')

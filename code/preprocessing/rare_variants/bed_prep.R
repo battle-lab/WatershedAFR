@@ -29,9 +29,9 @@ outdir = opt$outdir
 print('Reading files...')
 outliers = read.table(outliers_file, header = TRUE, check.names = FALSE)  # multi-tissue outliers
 pop_list = as.character(read.table(pop_list_file, header = FALSE)$V1) # list of individuals from a population (population list)
-regions = read.table(regions_file, col.names = c("CHROM","START","END", "Gene", "SCORE", "STRAND"), check.names = FALSE) # bed file of 10kb +/- window around the protein coding and lincRNA coding genes
+regions = read.table(regions_file, col.names = c("CHROM","START","END", "Gene", "SCORE"), check.names = FALSE) # bed file of 10kb +/- window around the protein coding and lincRNA coding genes
 indiv_at_rv = read.table(indiv_at_rv_file, header = TRUE, check.names = FALSE) # list of individuals with each rare variant (indiv per rare variant)
-print('Done\n')
+print('Done')
 
 # filter multi-tissue outliers for individuals from the population list
 outliers = filter(outliers, (Ind %in% pop_list))
@@ -49,7 +49,7 @@ indiv_at_rv = arrange(indiv_at_rv, SAMPLE)
 
 # create output directory if it doesn't already exist
 if (!dir.exists(outdir)) {
-dir.create(outdir)
+  dir.create(outdir)
 }
 
 print('Writing list of individuals from gene-individual pairs')

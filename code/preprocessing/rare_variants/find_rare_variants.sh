@@ -1,19 +1,38 @@
 #!/bin/bash
 
 ### file paths
-rootdir=/scratch/groups/abattle4/victor/WatershedAFR
-datadir=${rootdir}/data
-rawdir=${rootdir}/raw_data
+# rootdir=/scratch/groups/abattle4/victor/WatershedAFR
+# datadir=${rootdir}/data
+# rawdir=${rootdir}/raw_data
+# 
+# rvdir=${datadir}/rare_variants
+# 
+# gtex_raw=${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_WholeGenomeSeq_838Indiv_Analysis_Freeze.SHAPEIT2_phased.vcf.gz
+# regions=${datadir}/data_prep/gencode.v26.GRCh38.genes_padded10kb_PCandlinc_only.bed
+# 
+# pop_list=${datadir}/data_prep/gtex_v8_wgs_individuals_EUR.txt
+# pop="EUR"
+# 
+# outliers=${datadir}/outlier_calling/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt
 
-rvdir=${datadir}/rare_variants
-
-gtex_raw=${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_WholeGenomeSeq_838Indiv_Analysis_Freeze.SHAPEIT2_phased.vcf.gz
-regions=${datadir}/data_prep/gencode.v26.GRCh38.genes_padded10kb_PCandlinc_only.bed
-
-pop_list=${datadir}/data_prep/gtex_v8_wgs_individuals_EUR.txt
-pop="EUR"
-
-outliers=${datadir}/outlier_calling/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt
+## read in arguments
+while getopts d:g:r:l:p:o: flag
+do
+    case "${flag}" in
+        d) rvdir=${OPTARG};;
+        g) gtex_raw=${OPTARG};;
+        r) regions=${OPTARG};;
+        l) pop_list=${OPTARG};;
+        p) pop=${OPTARG};;
+        o) outliers=${OPTARG};;
+    esac
+done
+echo $rvdir
+echo $gtex_raw
+echo $regions
+echo $pop_list;
+echo $pop
+echo $outliers
 
 ## Check if bcftools and bedtools are available. If not, exit the script
 if ! command -v bcftools &> /dev/null
@@ -34,36 +53,41 @@ fi
 echo "*** Filter for rare variants within 10kb +/- window around gene body of genes that are protein coding and lincRNA coding"
 
 # GTEx variants (keep SNPs only)
-echo "**** Filtering GTEx variants"
-
 gtex=${rvdir}/gtex.vcf.gz
 
-bcftools view --regions-file $regions --types snps $gtex_raw | bcftools sort | bcftools norm --rm-dup snps \
---output $gtex --output-type z
-bcftools index --tbi $gtex
+if [ -f "$gtex" ]; then
+        echo "**** Filtered GTEx VCF already exists"
+else
+        bash code/preprocessing/rare_variants/filter_gtex.sh
+fi
+
+if [ -f "$gtex.tbi" ]; then
+        echo "**** Filtered GTEx VCF already indexed"
+else
+        echo "**** Indexing GTEx VCF"
+        bcftools index --tbi $gtex
+fi
+
 
 # 1KG variants
-echo "**** Filtering 1KG variants"
-
 _1kg=${rvdir}/1KG.padded10kb_PCandlinc_only.vcf.gz
-outdir_1kg=${rvdir}/1KG/genes_padded10kb_PCandlinc_only
 
-for i in {1..22}
-do
-  infile=${rawdir}/1KG/ALL.chr${i}.shapeit2_integrated_v1a.GRCh38.20181129.phased.vcf.gz
-  outfile=`basename $infile | sed 's/.vcf.gz//'`
-  outfile=${outdir_1kg}/${outfile}.genes_padded10kb_PCandlinc_only.vcf.gz
-  bcftools view --drop-genotypes --regions-file $regions --output-file $outfile --output-type z $infile
-done
+if [ -f "$_1kg.tbi" ]; then
+        echo "**** Filtered 1KG VCF already exists"
+else
+        bash code/preprocessing/rare_variants/filter_1kg.sh
+fi
 
-# concatenate chromosome VCFs from 1KG into one VCF
-ls -1 ${outdir_1kg}/*.vcf.gz | sort -V > ${outdir_1kg}/chrom_list.txt
 
-bcftools concat --file-list ${outdir_1kg}/chrom_list.txt | bcftools sort | \
-bcftools norm --rm-dup snps --output $_1kg --output-type z
-bcftools index --tbi $_1kg
+if [ -f "$_1kg.tbi" ]; then
+        echo "**** Filtered 1KG VCF already indexed"
+else
+        echo "**** Indexing 1KG VCF"
+        bcftools index --tbi $_1kg
+fi
 
 echo "*** Done"
+
 
 ## Subset GTEx VCF by population
 # also recomputes allele frequencies within that population
@@ -123,7 +147,7 @@ echo -e "CHROM\tPOS\tREF\tALT\tSAMPLE" > $indiv_at_rv
 bcftools query -f'[%CHROM\t%POS0\t%REF\t%ALT\t%SAMPLE\n]' --include 'GT="alt"' $gtex_pop_rareQC \
 >> $indiv_at_rv
 
-#Create two bed files for each individual:
+# Create two bed files for each individual:
 #- 10kb window before and after the gene in the gene-individual pair
 #- all rare variants belonging to the individual
 echo "**** Running bed_prep.R to create bed files for each sample"
@@ -134,7 +158,7 @@ Rscript code/preprocessing/rare_variants/bed_prep.R \
 --outliers=$outliers \
 --population=$pop_list \
 --regions=$regions \
---indiv_at_rv=$indiv_at_rv
+--indiv_at_rv=$indiv_at_rv \
 --outdir=$bed_outdir
 
 # Find overlap between gene-individual pair's region and rare variants
@@ -157,7 +181,8 @@ echo "Running gene_indiv_rare_variants.R"
 
 Rscript code/preprocessing/rare_variants/gene_indiv_rare_variants.R \
 --rv_sites=$rv_sites \
---popname=${pop} \
+--popname=$pop \
 --outdir=$rvdir
 
 echo "*** Done"
+date +"%r"
