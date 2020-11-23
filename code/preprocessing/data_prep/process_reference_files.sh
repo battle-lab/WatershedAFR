@@ -33,7 +33,7 @@ start=$4-1
 end=$5
 
 name=substr($10,2,length($10)-3);
-print chr,start,end,name,0,strand
+print chr,start,end,name,0
 }' > ${gtexprefix}.bed
 
 # gene bed file with 10kb added to both ends of the gene
