@@ -173,5 +173,6 @@ enrichmentTipTail <-
     gg <- graphEnrichment(enrichment.df = enrichment.df,title.mod.pop = title.mod.pop)
     
     print(gg)
+    return(list(summary=counts.summary,enrichment=enrichment.df, plot=gg))
   }
 
