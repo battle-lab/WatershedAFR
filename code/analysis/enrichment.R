@@ -4,12 +4,18 @@ library(ggplot2)
 # library(data.table)
 
 
-summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_pairs_file, thresholds=seq(1,5,0.5), output_prefix = "default"){
+summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_pairs_file, thresholds=seq(1,5,0.5),
+                                       output_dir = "./", output_prefix=NULL, ...){
   names(thresholds) <- thresholds
+  
+  if (is.null(output_prefix )){
+    output_prefix <- basename(tools::file_path_sans_ext(pop_subset_file))
+  }
+
   
   pop_list <- as.character(read.table(pop_subset_file, header = FALSE)$V1)
   
-  rare_var_pairs <- read.table(rare_var_pairs_file, header=TRUE, check.names = FALSE) %>%
+  rare_var_pairs <- read.table(rare_var_pairs_file, header=TRUE, check.names = FALSE, ...) %>%
     mutate(easykey = paste0(Gene,Ind))
   # remove "duplicate" gene-individual pairs with rare variants NOTE: Only first occurance in table is kept
   rare_var_pairs <- rare_var_pairs[!duplicated(rare_var_pairs$easykey),] 
@@ -72,6 +78,11 @@ summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_
       filter(GeneKeep)
       # cbind(pairs.df.pop, all.pairs.thresh[[t]]) %>% 
       # filter(GeneKeep)
+    write.csv(gktmp, file = paste0(output_dir,"/",output_prefix,"_",t,".csv"))
+    
+    gc()
+    gktmp <- gktmp %>%
+      filter(GeneKeep) 
     
     tmp1 <- gktmp %>%
       count(outlier) %>%
@@ -117,18 +128,18 @@ summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_
   return(summary.df)
 }
 
-
-computeEnrichment <- function(summary.df){
-  
-  # compute enrichment
-  enrichment.df  <- summary.df %>% mutate(numerator=outlier_rare_pairs/outlier_all_pairs, denominator=inlier_rare_pairs/inlier_all_pairs, enrichment=numerator/denominator) %>% 
-    # confidence intervals
-    mutate(log_se = sqrt(1/outlier_rare_pairs - 1/outlier_all_pairs + 1/inlier_rare_pairs - 1/inlier_all_pairs), lower_CI = enrichment * exp(-1.96*log_se), upper_CI = enrichment * exp(1.96*log_se)) %>%
-    mutate(sortcol = as.numeric(thresh)) %>%
-    arrange(sortcol)
-  
-  return(enrichment.df)
-}
+# 
+# computeEnrichment <- function(summary.df){
+#   
+#   # compute enrichment
+#   enrichment.df  <- summary.df %>% mutate(numerator=outlier_rare_pairs/outlier_all_pairs, denominator=inlier_rare_pairs/inlier_all_pairs, enrichment=numerator/denominator) %>% 
+#     # confidence intervals
+#     mutate(log_se = sqrt(1/outlier_rare_pairs - 1/outlier_all_pairs + 1/inlier_rare_pairs - 1/inlier_all_pairs), lower_CI = enrichment * exp(-1.96*log_se), upper_CI = enrichment * exp(1.96*log_se)) %>%
+#     mutate(sortcol = as.numeric(thresh)) %>%
+#     arrange(sortcol)
+#   
+#   return(enrichment.df)
+# }
 
 computeEnrichment <- function(summary.df){
   
@@ -161,12 +172,15 @@ enrichmentTipTail <-
   function(
     pop_subset_file, z_scores_file, 
     rare_var_pairs_file, thresholds=seq(1,5,0.5), 
-    path.prefix = "default", title.mod.pop="Population"){
+    output_dir = "./", output_prefix = NULL, title.mod.pop="Population", ...){
     
     counts.summary <- summarizeRareInlierOutlier(
       pop_subset_file = pop_subset_file, 
       rare_var_pairs_file =  rare_var_pairs_file,
-      z_scores_file = z_scores_file, thresholds = thresholds)
+      z_scores_file = z_scores_file,
+      thresholds = thresholds,
+      output_dir = output_dir,
+      output_prefix = output_prefix, ...)
     
     enrichment.df <- computeEnrichment(counts.summary)
     
