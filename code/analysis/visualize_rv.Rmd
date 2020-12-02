@@ -1,0 +1,114 @@
+# Visualize Rare Variants and Outliers
+
+```{r}
+library(data.table)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(ggVennDiagram)
+
+
+# functions
+
+# rv.count.df - dataframe with count of rare variants per gene
+# heading - heading for histogram title
+plot_hist = function(rv.count, heading) {
+  
+  # plot histogram
+  title = paste0("Rare variants per gene - ", heading)
+  p = ggplot(rv.count, aes(x=n)) + 
+    geom_histogram(bins = 200) +
+    labs(title="Rare variants per gene", x = "# of rare variants", y = "# of genes")
+  print(p)
+}
+
+# rare variant files
+rv_ws_file = '/work-zfs/abattle4/bstrober/rare_variant/gtex_v8/splicing/input_data/variant_calls/all_rare_variants_SNPs_10kb_genebody.txt'
+rv_eur_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/rare_variants/gene-EUR-rv.txt'
+rv_afr_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/rare_variants/gene-AFR-rv.txt'
+```
+
+```{r}
+# Watershed 
+
+# open file
+rv_ws = read.table(rv_ws_file, header = FALSE, check.names = FALSE)
+colnames(rv_ws) = c("Ind", "Gene", "Chrom", "Start", "End")
+
+# count rare variants per gene
+rv_ws.count = rv_ws %>% count(Gene)
+
+plot_hist(rv_ws.count, heading = "Watershed")
+
+```
+
+```{r}
+# European 
+
+# open files
+rv_eur = read.table(rv_eur_file, header = TRUE, check.names = FALSE)
+
+# count rare variants per gene
+rv_eur.count = rv_eur %>% count(Gene)
+
+plot_hist(rv_eur.count, heading = "European")
+```
+
+```{r}
+# African 
+
+# open files
+rv_afr = read.table(rv_afr_file, header = TRUE, check.names = FALSE)
+
+# count rare variants per gene
+rv_afr.count = rv_afr %>% count(Gene)
+
+plot_hist(rv_afr.count, heading = "Watershed")
+```
+
+```{r}
+# combined histogram
+rv_ws.count = rv_ws.count %>% mutate(source = "Watershed")
+rv_eur.count = rv_eur.count %>% mutate(source = "European")
+rv_afr.count = rv_afr.count %>% mutate(source = "African")
+
+rv.count = bind_rows(rv_ws.count, rv_eur.count, rv_afr.count)
+rv.count = rv.count %>% arrange(desc(n))
+
+ggplot(rv.count, aes(x=n, fill=source)) + geom_histogram(alpha=0.2, bins = 100) +
+  labs(title="Rare variants per gene", x = "# of rare variants", y = "# of genes")
+
+```
+
+```{r}
+# split into less than and greater than percentile
+percentile = 0.95
+thresh = quantile(rv.count$n, percentile)
+
+rv.count.lower = rv.count %>% filter(n <= thresh)
+rv.count.upper = rv.count %>% filter(n > thresh)
+
+hist.lower = ggplot(rv.count.lower, aes(x=n, fill=source)) + geom_histogram(alpha=0.2, binwidth = 100) +
+  labs(title=paste0("Rare variants per gene (<=", percentile, ")"), x = "# of rare variants", y = "# of genes")
+
+hist.upper = ggplot(rv.count.upper, aes(x=n, fill=source)) + geom_histogram(alpha=0.2) +
+  labs(title=paste0("Rare variants per gene (>", percentile, ")"), x = "# of rare variants", y = "# of genes")
+
+print(hist.lower)
+print(hist.upper)
+
+```
+
+```{r}
+# Genes with top percentile of rare variants within each source
+thresh_ws = quantile(rv_ws.count$n, percentile)
+thresh_eur = quantile(rv_eur.count$n, percentile)
+thresh_afr = quantile(rv_afr.count$n, percentile)
+
+rv_ws.count.upper = rv_ws.count %>% filter(n > thresh_ws) %>% arrange(desc(n))
+rv_eur.count.upper = rv_eur.count %>% filter(n > thresh_eur) %>% arrange(desc(n))
+rv_afr.count.upper = rv_afr.count %>% filter(n > thresh_afr) %>% arrange(desc(n))
+
+top_genes_ws = unique(rv_ws.count.upper$Gene)
+top_genes_eur = unique(rv_eur.count.upper$Gene)
+top_genes_afr = unique(rv_afr.count.upper$Gene)
