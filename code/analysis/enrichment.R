@@ -1,26 +1,27 @@
 library(tidyr)
 library(dplyr)
 library(ggplot2)
+# library(data.table)
 
 
 summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_pairs_file, thresholds=seq(1,5,0.5), output_prefix = "default"){
   names(thresholds) <- thresholds
   
-  pop_list <- as.character(read.table(pop_subset_file, header = FALSE, stringsAsFactors = FALSE)$V1)
+  pop_list <- as.character(read.table(pop_subset_file, header = FALSE)$V1)
   
-  rare_var_pairs <- read.table(rare_var_pairs_file, header=TRUE, check.names = FALSE, stringsAsFactors = FALSE) %>%
+  rare_var_pairs <- read.table(rare_var_pairs_file, header=TRUE, check.names = FALSE) %>%
     mutate(easykey = paste0(Gene,Ind))
   # remove "duplicate" gene-individual pairs with rare variants NOTE: Only first occurance in table is kept
   rare_var_pairs <- rare_var_pairs[!duplicated(rare_var_pairs$easykey),] 
   
   # create a subtable that will be more useful ## DO NOT CHANGE ITS ORDER AFTER THIS STEP
-  pairs.df.pop <- read.table(z_scores_file, header=TRUE, check.names = FALSE, stringsAsFactors = FALSE) %>%
+  pairs.df.pop <- read.table(z_scores_file, header=TRUE, check.names = FALSE) %>%
     mutate(easykey = paste0(Gene,Ind)) %>% # create an id column for gene-indiv pairs
     select(easykey,Gene,Ind,MedZ) %>%
     filter(Ind %in% pop_list) %>% #limit pairs.df.pop to individuals within the population
     mutate(has_rare=ifelse(easykey %in% rare_var_pairs$easykey,1,0))  %>% # add column to pairs.df.pop indicating if the given gene-individual pair has at least 1 rare variant within 10kb of gene TSS
     ungroup()
-  
+  gc()
   
   # determine inlier/outlier status based on Zscore thresholds
   # for (thresh in zscore_thresh_list) {
@@ -34,18 +35,21 @@ summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_
   # colnames(outlier_status) <- paste0("outlier_status_at_thresh_",thresholds)
   
   # all.pairs.thresh is a list titled by threshold that contains all inlier/outlier information for each pair at that threshold.
-  all.pairs.thresh <- lapply(thresholds,function(t){
-    outlier_stat <- ifelse(abs(pairs.df.pop$MedZ) > as.numeric(t), "outlier","inlier")
-    #threshcol <- paste0("outlier_status_at_thresh_",t)
-    tmp <- pairs.df.pop
-    tmp$outlier <- outlier_stat
-    tmp <- tmp %>%
-      group_by(Gene) %>% 
-      mutate(OutlierGenePairs = sum(outlier == "outlier",na.rm = T), GeneKeep = OutlierGenePairs > 0) %>%
-      ungroup() 
-    
-    return(tmp[,c("outlier","GeneKeep")])
-  })
+  # all.pairs.thresh <- lapply(thresholds,function(t){
+  #   # outlier_stat <- ifelse(abs(pairs.df.pop$MedZ) > as.numeric(t), "outlier","inlier")
+  #   #threshcol <- paste0("outlier_status_at_thresh_",t)
+  #   # tmp <- pairs.df.pop
+  #   # tmp$outlier <- outlier_stat
+  #   tmp <- pairs.df.pop %>%
+  #     mutate(outlier = ifelse(abs(pairs.df.pop$MedZ) > as.numeric(t), "outlier","inlier")) %>%
+  #     group_by(Gene) %>% 
+  #     mutate(
+  #       OutlierGenePairs = sum(outlier == "outlier",na.rm = T),
+  #       GeneKeep = OutlierGenePairs > 0) %>%
+  #     ungroup() 
+  #   
+  #   return(tmp[,c("outlier","GeneKeep")])
+  # })
   
   # # collect the indices of the rows pertinent to each threshold (meaning that all genes have at least one outlier at the given threshold)
   # outlier.pairs.thresh <- lapply(all.pairs.thresh, function(x){
@@ -56,9 +60,18 @@ summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_
   
   # frequency table to count inliers and outliers with or without rare variants
   counts.list <- lapply(thresholds, function(t){
+    print(t)
     gktmp <- 
-      cbind(pairs.df.pop, all.pairs.thresh[[t]]) %>% 
+      pairs.df.pop %>%
+      mutate(outlier = ifelse(abs(pairs.df.pop$MedZ) > as.numeric(t), "outlier","inlier")) %>%
+      group_by(Gene) %>% 
+      mutate(
+        OutlierGenePairs = sum(outlier == "outlier",na.rm = T),
+        GeneKeep = OutlierGenePairs > 0) %>%
+      ungroup() %>%
       filter(GeneKeep)
+      # cbind(pairs.df.pop, all.pairs.thresh[[t]]) %>% 
+      # filter(GeneKeep)
     
     tmp1 <- gktmp %>%
       count(outlier) %>%
@@ -93,8 +106,9 @@ summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_
     # pivot_wider(names_from=outlier,values_from=n,names_prefix="ERROR")
     # }
     tmp <- cbind(tmp1,tmp2)
+    rm(tmp1,tmp2)
     tmp$thresh <- t
-    
+    gc()
     return(tmp)
   })
   # frequency table to count inliers and outliers with or without rare variants
@@ -119,9 +133,14 @@ computeEnrichment <- function(summary.df){
 computeEnrichment <- function(summary.df){
   
   # compute enrichment
-  enrichment.df  <- summary.df %>% mutate(numerator=outlier_rare_pairs/outlier_all_pairs, denominator=inlier_rare_pairs/inlier_all_pairs, enrichment=numerator/denominator) %>% 
+  enrichment.df  <- summary.df %>% 
+    mutate( numerator=outlier_rare_pairs/outlier_all_pairs,
+            denominator=inlier_rare_pairs/inlier_all_pairs,
+            enrichment=numerator/denominator) %>% 
     # confidence intervals
-    mutate(log_se = sqrt(1/outlier_rare_pairs - 1/outlier_all_pairs + 1/inlier_rare_pairs - 1/inlier_all_pairs), lower_CI = enrichment * exp(-1.96*log_se), upper_CI = enrichment * exp(1.96*log_se)) %>%
+    mutate( log_se = sqrt(1/outlier_rare_pairs - 1/outlier_all_pairs + 1/inlier_rare_pairs - 1/inlier_all_pairs),
+            lower_CI = enrichment * exp(-1.96*log_se),
+            upper_CI = enrichment * exp(1.96*log_se)) %>%
     mutate(sortcol = as.numeric(thresh)) %>%
     arrange(sortcol)
   
