@@ -30,13 +30,16 @@ euro_pop_list = '/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep/gte
 ```
 
 
-```{r euroenrich}
+```{r euroenrich, cache=TRUE}
+euro.output <- enrichmentTipTail(pop_subset_file = euro_pop_list, z_scores_file = euro_z_scores, rare_var_pairs_file = euro_rare_var_pairs ,title.mod.pop = "European")
 
-euro.summary <- summarizeRareInlierOutlier(pop_subset_file = euro_pop_list, z_scores_file = euro_z_scores, rare_var_pairs_file = euro_rare_var_pairs)
+euro.output
 
-euro.enrichment <- computeEnrichment(euro.summary)
-
-graphEnrichment(euro.enrichment,"European")
+# euro.summary <- summarizeRareInlierOutlier(pop_subset_file = euro_pop_list, z_scores_file = euro_z_scores, rare_var_pairs_file = euro_rare_var_pairs)
+# 
+# euro.enrichment <- computeEnrichment(euro.summary)
+# 
+# graphEnrichment(euro.enrichment,"European")
 
 ```
 
@@ -49,13 +52,15 @@ afr_pop_list_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep
 ```
 
 
-```{r afrenrich}
+```{r afrenrich, cache=TRUE}
 
-afr.summary <- summarizeRareInlierOutlier(pop_subset_file = afr_pop_list_file, z_scores_file = afr_z_scores_file, rare_var_pairs_file = afr_rare_var_pairs_file)
+afr.output <- enrichmentTipTail(pop_subset_file = afr_pop_list_file, z_scores_file = afr_z_scores_file, rare_var_pairs_file = afr_rare_var_pairs_file,title.mod.pop = "African")
 
-afr.enrichment <- computeEnrichment(afr.summary)
 
-graphEnrichment(afr.enrichment,"African")
+afr.output
+# afr.enrichment <- computeEnrichment(afr.summary)
+# 
+# graphEnrichment(afr.enrichment,"African")
 
 ```
 
