@@ -6,15 +6,15 @@ library(ggplot2)
 summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_pairs_file, thresholds=seq(1,5,0.5), output_prefix = "default"){
   names(thresholds) <- thresholds
   
-  pop_list <- as.character(read.table(pop_list_file, header = FALSE)$V1)
+  pop_list <- as.character(read.table(pop_subset_file, header = FALSE, stringsAsFactors = FALSE)$V1)
   
-  rare_var_pairs <- read.table(rare_var_pairs_file, header=TRUE, check.names = FALSE) %>%
+  rare_var_pairs <- read.table(rare_var_pairs_file, header=TRUE, check.names = FALSE, stringsAsFactors = FALSE) %>%
     mutate(easykey = paste0(Gene,Ind))
   # remove "duplicate" gene-individual pairs with rare variants NOTE: Only first occurance in table is kept
   rare_var_pairs <- rare_var_pairs[!duplicated(rare_var_pairs$easykey),] 
   
   # create a subtable that will be more useful ## DO NOT CHANGE ITS ORDER AFTER THIS STEP
-  pairs.df.pop <- read.table(z_scores_file, header=TRUE, check.names = FALSE) %>%
+  pairs.df.pop <- read.table(z_scores_file, header=TRUE, check.names = FALSE, stringsAsFactors = FALSE) %>%
     mutate(easykey = paste0(Gene,Ind)) %>% # create an id column for gene-indiv pairs
     select(easykey,Gene,Ind,MedZ) %>%
     filter(Ind %in% pop_list) %>% #limit pairs.df.pop to individuals within the population
@@ -61,12 +61,14 @@ summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_
       filter(GeneKeep)
     
     tmp1 <- gktmp %>%
-      count(outlier)
-    
-    # if (all(c("outlier","inlier") %in% unique(tmp1$outlier))){
-    tmp1 <- tmp1 %>%
+      count(outlier) %>%
       pivot_wider(names_from=outlier,values_from=n) %>%
       rename(outlier_all_pairs=outlier, inlier_all_pairs=inlier)
+    
+    # if (all(c("outlier","inlier") %in% unique(tmp1$outlier))){
+    # tmp1 <- tmp1 %>%
+    #   pivot_wider(names_from=outlier,values_from=n) %>%
+    #   rename(outlier_all_pairs=outlier, inlier_all_pairs=inlier)
     # } else {
     # tmp1 <- tmp1 %>%
     # pivot_wider(names_from=outlier,values_from=n,names_prefix="ERROR")
@@ -74,16 +76,18 @@ summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_
     
     tmp2 <- gktmp %>% 
       filter(has_rare == 1) %>%
-      count(outlier) 
-    print("Here are the unique values in the outlier column after filtering for rare")
-    print(unique(tmp2$outlier))
-    print("Here's the head of the table:")
-    print(head(tmp2))
-    
-    # if (all(c("outlier","inlier") %in% unique(tmp2$outlier))){
-    tmp2 <- tmp2 %>%
+      count(outlier) %>%
       pivot_wider(names_from=outlier,values_from=n) %>%
       rename(outlier_rare_pairs=outlier, inlier_rare_pairs=inlier)
+    # print("Here are the unique values in the outlier column after filtering for rare")
+    # print(unique(tmp2$outlier))
+    # print("Here's the head of the table:")
+    # print(head(tmp2))
+    
+    # if (all(c("outlier","inlier") %in% unique(tmp2$outlier))){
+    # tmp2 <- tmp2 %>%
+    #   pivot_wider(names_from=outlier,values_from=n) %>%
+    #   rename(outlier_rare_pairs=outlier, inlier_rare_pairs=inlier)
     # } else{
     # tmp2 <- tmp2 %>%
     # pivot_wider(names_from=outlier,values_from=n,names_prefix="ERROR")
