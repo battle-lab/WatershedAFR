@@ -55,3 +55,5 @@ covariates = read.table(cov.file, header = T)
 sapply(tissues, ztrans.tissue, dir = peer.dir, covs = covariates)
 
 print(paste("log2(tpm + 2) transformed data saved to", peer.dir))
+print(paste(length(tissues),"out of",length(unique(tissue.list)), "tissues had more than 50"))
+print("The remaining tissues were not log2-transformed")
