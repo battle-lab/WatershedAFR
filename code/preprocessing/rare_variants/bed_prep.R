@@ -9,6 +9,13 @@ library(dplyr)
 library(data.table)
 library(optparse)
 
+#example file paths
+# outliers_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/outlier_calling/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt'
+# pop_list_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep/gtex_v8_wgs_individuals_EUR.txt'
+# regions_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep/gencode.v26.GRCh38.genes_padded10kb_PCandlinc_only.bed'
+# indiv_at_rv_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/rare_variants/gtex_EUR_rare.QC.indiv.txt'
+# outdir = '/scratch/groups/abattle4/victor/WatershedAFR/data/rare_variants/rv_bed_EUR'
+
 # Read command line arguments
 option_list = list(make_option(c('--outliers'), type = 'character', default = NULL, help = 'multi-tissue outliers with Zscore data'),
                    make_option(c('--population'), type = 'character', default = NULL, help = 'list of samples from a population'),
