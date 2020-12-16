@@ -42,7 +42,7 @@ start = $2-10000;
 if (start < 0) {start = 0};
 end = $3+10000;
 
-print $1,start,end,$4,$5,$6
+print $1,start,end,$4,$5
 }' > ${gtexprefix}_padded10kb.bed
 
 # genetypes
@@ -57,4 +57,4 @@ grep -E 'lincRNA|protein_coding' ${gtexprefix}_genetypes_autosomal.txt > ${gtexp
 sort -k 1 ${gtexprefix}_genetypes_autosomal_PCandlinc_only.txt > tmp.txt && mv tmp.txt ${gtexprefix}_genetypes_autosomal_PCandlinc_only.txt
 sort -k 4 ${gtexprefix}_padded10kb.bed > tmp.txt && mv tmp.txt ${gtexprefix}_padded10kb.bed
 join --nocheck-order -j1 1 -j2 4 ${gtexprefix}_genetypes_autosomal_PCandlinc_only.txt ${gtexprefix}_padded10kb.bed | \
-awk '{print $3 "\t" $4 "\t" $5 "\t" $1 "\t" $6 "\t" $7}' | sort -V > ${gtexprefix}_padded10kb_PCandlinc_only.bed
+awk '{print $3 "\t" $4 "\t" $5 "\t" $1 "\t" $6}' | sort -V > ${gtexprefix}_padded10kb_PCandlinc_only.bed
