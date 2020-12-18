@@ -87,7 +87,6 @@ See [data_sources.md](https://github.com/battle-lab/WatershedAFR/blob/master/dat
 ## Preprocessing pipeline
 Goal: Preprocess raw data to be used as input for training Watershed models.
 
-<!---
 ### Expression data correction and normalization
 
 
@@ -100,7 +99,7 @@ cat ${rawdir}/GTEx/GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt | tail -n
   awk '$3=="RNASEQ" {print $1"\t"$2}' | sort -k 1 > ${datadir}/data_prep/gtex_v8_samples_tissues.txt
 ```
 
-Split combined TPM and read counts by tissue.
+Splits the combined TPM file and read counts file by tissue.
 ``` 
 # split TPM
 OUT=${datadir}/data_prep/PEER
@@ -119,20 +118,30 @@ python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX --out 
 
 #### Generate PEER corrected data (includes non-EAs) with covariates removed
 
+Build covariate matrix with PC's 1 - 5 and sex from the eQTL covariates by tissue.
+```bash
+Rscript code/preprocessing/data_prep/combine_covariates_across_tissues.R
+```
 
 For each tissue, filter for genes with > 20% individuals with TPM > 0.1 and read count > 6, Log2(tpm + 2) transfrom the data, and then z-transform.
-```
+```bash
 Rscript code/preprocessing/data_prep/preprocess_expr.R
 ```
 
-Generate list of top eQTLs for each gene in each tissue, extract from VCF, convert to number alternative alleles
+Rename eQTL files from "cervical_c-1" to "cervical_c1" for consistency
+```
+rename c-1 c1 ${rawdir}/GTEx/GTEx_Analysis_v8_eQTL/*c-1*
 ```
 
-
+Generate list of top eQTLs for each gene in each tissue, extract from VCF, convert to number alternative alleles
+```bash
 bash code/preprocessing/data_prep/get_genotypes.sh
 ```
---->
 
+Run PEER correction and compute residuals
+```bash
+bash code/preprocessing/data_prep/calculate_PEER.sh
+```
 
 #### Make lists of individuals
 Make list of all individuals from GTEx v8. Make list of all individuals with reported African American ancestry and European ancestry. Requires `bcftools`
