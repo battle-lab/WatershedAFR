@@ -143,6 +143,20 @@ Run PEER correction and compute residuals
 bash code/preprocessing/data_prep/calculate_PEER.sh
 ```
 
+#### Combine PEER-corrected data into a single flat file
+
+Generate files with data on what tissues are available per individual after PEER correction
+```bash
+bash code/preprocessing/data_prep/get_tissue_by_individual.sh
+```
+
+Combine the PEER-corrected data
+```bash
+python code/preprocessing/data_prep/gather_filter_normalized_expression.py
+gzip ${datadir}/data_prep/gtex_2017-06-05_normalized_expression.txt
+```
+
+
 #### Make lists of individuals
 Make list of all individuals from GTEx v8. Make list of all individuals with reported African American ancestry and European ancestry. Requires `bcftools`
 * `${datadir}/data_prep/gtex_v8_individuals_all.txt` - All 948 individuals from GTEx v8
