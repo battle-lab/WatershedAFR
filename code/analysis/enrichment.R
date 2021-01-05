@@ -4,18 +4,28 @@ library(ggplot2)
 # library(data.table)
 
 
-summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_pairs_file, thresholds=seq(1,5,0.5),
-                                       output_dir = "./", output_prefix=NULL, ...){
+summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_pairs_file, 
+                                       thresholds=seq(1,5,0.5), outlier_bin_width = NULL, 
+                                       outlier_bin_percentile=NULL,
+                                       output_dir = "./", output_prefix=NULL, col.names = NULL){
   names(thresholds) <- thresholds
   
   if (is.null(output_prefix )){
     output_prefix <- basename(tools::file_path_sans_ext(pop_subset_file))
   }
-
+  if (! is.null(outlier_bin_width)){
+    output_prefix <- paste0(output_prefix,"_binw",outlier_bin_width)
+  }
+  
   
   pop_list <- as.character(read.table(pop_subset_file, header = FALSE)$V1)
   
-  rare_var_pairs <- read.table(rare_var_pairs_file, header=TRUE, check.names = FALSE, ...) %>%
+  rare_var_pairs <- read.table(rare_var_pairs_file, header=TRUE, check.names = FALSE) 
+  if (! is.null(col.names)){
+    colnames(rare_var_pairs) <- col.names
+  }
+  
+  rare_var_pairs <- rare_var_pairs %>%
     mutate(easykey = paste0(Gene,Ind))
   # remove "duplicate" gene-individual pairs with rare variants NOTE: Only first occurance in table is kept
   rare_var_pairs <- rare_var_pairs[!duplicated(rare_var_pairs$easykey),] 
@@ -29,55 +39,39 @@ summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_
     ungroup()
   gc()
   
-  # determine inlier/outlier status based on Zscore thresholds
-  # for (thresh in zscore_thresh_list) {
-  #   pairs.df.pop[[paste0("outlier_status_at_thresh_",thresh)]] = ifelse(abs(pairs.df.pop$MedZ) > thresh, "outlier","inlier")
-  # }
-  # determine inlier/outlier status based on Zscore thresholds -- using apply for future parallelization cababilities jic
-  # outlier_status <- as.data.frame(sapply(thresholds, function(x){
-  #   tmp <- ifelse(abs(pairs.df.pop$MedZ) > as.numeric(x), "outlier","inlier")
-  #   return(tmp)
-  # }))
-  # colnames(outlier_status) <- paste0("outlier_status_at_thresh_",thresholds)
+  maximum_z <- max(abs(pairs.df.pop$MedZ))
+  #if we don't want to use an outlier bin width, set it to the maximum zscore
+  if (is.null(outlier_bin_width )){
+    thresh_upper_bound = maximum_z
+  }
   
-  # all.pairs.thresh is a list titled by threshold that contains all inlier/outlier information for each pair at that threshold.
-  # all.pairs.thresh <- lapply(thresholds,function(t){
-  #   # outlier_stat <- ifelse(abs(pairs.df.pop$MedZ) > as.numeric(t), "outlier","inlier")
-  #   #threshcol <- paste0("outlier_status_at_thresh_",t)
-  #   # tmp <- pairs.df.pop
-  #   # tmp$outlier <- outlier_stat
-  #   tmp <- pairs.df.pop %>%
-  #     mutate(outlier = ifelse(abs(pairs.df.pop$MedZ) > as.numeric(t), "outlier","inlier")) %>%
-  #     group_by(Gene) %>% 
-  #     mutate(
-  #       OutlierGenePairs = sum(outlier == "outlier",na.rm = T),
-  #       GeneKeep = OutlierGenePairs > 0) %>%
-  #     ungroup() 
-  #   
-  #   return(tmp[,c("outlier","GeneKeep")])
-  # })
-  
-  # # collect the indices of the rows pertinent to each threshold (meaning that all genes have at least one outlier at the given threshold)
-  # outlier.pairs.thresh <- lapply(all.pairs.thresh, function(x){
-  #   return(which(x$GeneKeep))
-  #   
-  # })
-  
+  if (! is.null(outlier_bin_percentile)){
+    qthresh <- quantile(pairs.df.pop$MedZ[abs(pairs.df.pop$MedZ) > as.numeric(t)], outlier_bin_percentile)
+  }
   
   # frequency table to count inliers and outliers with or without rare variants
   counts.list <- lapply(thresholds, function(t){
     print(t)
+    if (! is.null(outlier_bin_width )){
+      thresh_upper_bound = t + outlier_bin_width
+    }
+    if (! is.null(outlier_bin_percentile)){
+      thresh_upper_bound = max(thresh_upper_bound,qthresh)
+    }
+    
     gktmp <- 
       pairs.df.pop %>%
-      mutate(outlier = ifelse(abs(pairs.df.pop$MedZ) > as.numeric(t), "outlier","inlier")) %>%
+      mutate(outlier = ifelse( abs(pairs.df.pop$MedZ) > as.numeric(t),
+                               ifelse(abs(pairs.df.pop$MedZ) <= thresh_upper_bound, 
+                                      "outlier","outofbounds"),"inlier")) %>%
       group_by(Gene) %>% 
       mutate(
         OutlierGenePairs = sum(outlier == "outlier",na.rm = T),
         GeneKeep = OutlierGenePairs > 0) %>%
       ungroup() %>%
       filter(GeneKeep)
-      # cbind(pairs.df.pop, all.pairs.thresh[[t]]) %>% 
-      # filter(GeneKeep)
+    # cbind(pairs.df.pop, all.pairs.thresh[[t]]) %>% 
+    # filter(GeneKeep)
     write.csv(gktmp, file = paste0(output_dir,"/",output_prefix,"_",t,".csv"))
     
     gc()
@@ -87,38 +81,20 @@ summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_
     tmp1 <- gktmp %>%
       count(outlier) %>%
       pivot_wider(names_from=outlier,values_from=n) %>%
-      rename(outlier_all_pairs=outlier, inlier_all_pairs=inlier)
-    
-    # if (all(c("outlier","inlier") %in% unique(tmp1$outlier))){
-    # tmp1 <- tmp1 %>%
-    #   pivot_wider(names_from=outlier,values_from=n) %>%
-    #   rename(outlier_all_pairs=outlier, inlier_all_pairs=inlier)
-    # } else {
-    # tmp1 <- tmp1 %>%
-    # pivot_wider(names_from=outlier,values_from=n,names_prefix="ERROR")
-    # }
+      rename_at(which(colnames(.) %in% c("outlier","inlier","outofbounds")), ~paste0(.,"_all_pairs"))
     
     tmp2 <- gktmp %>% 
       filter(has_rare == 1) %>%
       count(outlier) %>%
       pivot_wider(names_from=outlier,values_from=n) %>%
-      rename(outlier_rare_pairs=outlier, inlier_rare_pairs=inlier)
-    # print("Here are the unique values in the outlier column after filtering for rare")
-    # print(unique(tmp2$outlier))
-    # print("Here's the head of the table:")
-    # print(head(tmp2))
+      rename_at(which(colnames(.) %in% c("outlier","inlier","outofbounds")), ~paste0(.,"_rare_pairs"))
     
-    # if (all(c("outlier","inlier") %in% unique(tmp2$outlier))){
-    # tmp2 <- tmp2 %>%
-    #   pivot_wider(names_from=outlier,values_from=n) %>%
-    #   rename(outlier_rare_pairs=outlier, inlier_rare_pairs=inlier)
-    # } else{
-    # tmp2 <- tmp2 %>%
-    # pivot_wider(names_from=outlier,values_from=n,names_prefix="ERROR")
-    # }
     tmp <- cbind(tmp1,tmp2)
     rm(tmp1,tmp2)
     tmp$thresh <- t
+    tmp$outlier_bin_width <- outlier_bin_width
+    tmp$outlier_bin_width <- outlier_bin_percentile
+    tmp$outlier_upper_thresh <- thresh_upper_bound
     gc()
     return(tmp)
   })
@@ -127,7 +103,6 @@ summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_
   
   return(summary.df)
 }
-
 # 
 # computeEnrichment <- function(summary.df){
 #   
@@ -162,7 +137,8 @@ graphEnrichment <- function(enrichment.df, title.mod.pop){
   enrichment.plot = ggplot(enrichment.df, aes(x = sortcol, y = enrichment)) +
     geom_point(size = 2) + 
     geom_text(aes(label = outlier_all_pairs), hjust = 0.7, vjust = -4) + 
-    geom_errorbar(aes(ymax = upper_CI, ymin = lower_CI)) + labs(title=paste0("Enrichment of rare variants in outlier genes (",title.mod.pop,")"), x = "Z-score threshold")
+    geom_errorbar(aes(ymax = upper_CI, ymin = lower_CI)) + 
+    labs(title=paste0("Enrichment of rare variants in outlier genes (",title.mod.pop,")"), x = "Z-score threshold")
   
   return(enrichment.plot)
 }
@@ -170,23 +146,32 @@ graphEnrichment <- function(enrichment.df, title.mod.pop){
 
 enrichmentTipTail <- 
   function(
-    pop_subset_file, z_scores_file, 
-    rare_var_pairs_file, thresholds=seq(1,5,0.5), 
-    output_dir = "./", output_prefix = NULL, title.mod.pop="Population", ...){
+    pop_subset_file, 
+    z_scores_file, 
+    rare_var_pairs_file, 
+    thresholds=seq(1,5,0.5),
+    outlier_bin_width = NULL, 
+    outlier_bin_percentile=NULL,
+    output_dir = "./", 
+    output_prefix = NULL, 
+    title.mod.pop="Population", 
+    col.names = NULL){
     
     counts.summary <- summarizeRareInlierOutlier(
       pop_subset_file = pop_subset_file, 
       rare_var_pairs_file =  rare_var_pairs_file,
       z_scores_file = z_scores_file,
       thresholds = thresholds,
+      outlier_bin_width = outlier_bin_width,
+      outlier_bin_percentile = outlier_bin_percentile,
       output_dir = output_dir,
-      output_prefix = output_prefix, ...)
+      output_prefix = output_prefix,
+      col.names = col.names)
     
     enrichment.df <- computeEnrichment(counts.summary)
     
     gg <- graphEnrichment(enrichment.df = enrichment.df,title.mod.pop = title.mod.pop)
     
-    print(gg)
     return(list(summary=counts.summary,enrichment=enrichment.df, plot=gg))
   }
 
