@@ -53,15 +53,7 @@ euro.output4
 
 #### Cutoff at threshold + 1
 ```{r eurobin1, cache=TRUE}
-thresholds <- sort(unique(c(seq(1,2,.2), seq(1,5,.5))))
-
-euro.output5 <- enrichmentTipTail(
-  pop_subset_file = euro_pop_list,
-  z_scores_file = euro_z_scores, 
-  rare_var_pairs_file = euro_rare_var_pairs ,
-  output_dir = datadir, title.mod.pop = "European",
-  thresholds = thresholds, outlier_bin_width = 1)
-
+euro.output5 <- readRDS(paste0(datadir,'/european_1to5_binw1.rds'))
 euro.output5
 ```
 
