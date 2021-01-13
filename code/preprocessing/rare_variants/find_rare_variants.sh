@@ -72,7 +72,7 @@ fi
 # 1KG variants
 _1kg=${rvdir}/1KG.padded10kb_PCandlinc_only.vcf.gz
 
-if [ -f "$_1kg.tbi" ]; then
+if [ -f "$_1kg" ]; then
         echo "**** Filtered 1KG VCF already exists"
 else
         bash code/preprocessing/rare_variants/filter_1kg.sh
