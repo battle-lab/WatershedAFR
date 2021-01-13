@@ -72,6 +72,7 @@ Here are the results of enrichment on the African samples using thresholds 1, 1.
 ```{r afrretrieve, cache=TRUE}
 
 afr.output.3 <- readRDS(paste0(datadir,'/african_1to5.rds'))
+afr.output.3$enrichment$binw=0
 afr.output.3
 
 ```
@@ -81,6 +82,8 @@ afr.output.3
 #### Cutoff at threshold + 0.5
 ```{r afrbin05_retrieve, cache=TRUE}
 afr.output.4 <- readRDS(paste0(datadir,'/african_1to5_binw05.rds'))
+afr.output.4$enrichment$binw=0.5
+afr.output.4$plot2 <- afr.output.4$plot + ggtitle("Enrichment of Rare Variants in Outlier Genes -- African (bw=0.5)")
 afr.output.4
 
 ```
@@ -88,6 +91,8 @@ afr.output.4
 #### Cutoff at threshold + 1
 ```{r afrbin05_retrieve, cache=TRUE}
 afr.output.5 <- readRDS(paste0(datadir,'/african_1to5_binw1.rds'))
+afr.output.5$enrichment$binw=1
+afr.output.5$plot <-afr.output.5$plot + ggtitle("Enrichment of Rare Variants in Outlier Genes -- African (bw=1)")
 afr.output.5
 
 ```
@@ -96,6 +101,8 @@ afr.output.5
 #### Cutoff at threshold + 0.25
 ```{r afrbin025_retrieve, cache=TRUE}
 afr.output.6 <- readRDS(paste0(datadir,'/african_1to5_binw025.rds'))
+afr.output.6$enrichment$binw=0.25
+afr.output.6$plot <- afr.output.6$plot + ggtitle("Enrichment of Rare Variants in Outlier Genes -- African (bw=0.25)")
 afr.output.6
 
 ```
@@ -103,9 +110,44 @@ afr.output.6
 #### Cutoff at threshold + 0.15
 ```{r afrbin015_retrieve, cache=TRUE}
 afr.output.7 <- readRDS(paste0(datadir,'/african_1to5_binw015.rds'))
+afr.output.7$enrichment$binw=0.15
+afr.output.7$plot <- afr.output.7$plot + ggtitle("Enrichment of Rare Variants in Outlier Genes -- African (bw=0.15)")
 afr.output.7
 
 ```
+
+
+
+### AFR Enrichment Summary Graphs
+
+```{r sumg1, cache = TRUE}
+afr.df <- bind_rows(afr.output.3$enrichment, afr.output.4$enrichment, afr.output.5$enrichment, afr.output.6$enrichment, afr.output.7$enrichment) %>%
+  mutate(binw=factor(binw))
+
+afr.df %>%
+  ggplot(aes(x = sortcol, y = enrichment, col=binw)) +
+  geom_line(size = .5) + 
+    #geom_text(aes(label = outlier_all_pairs), hjust = 0.7, vjust = -4) + 
+    geom_errorbar(aes(ymax = upper_CI, ymin = lower_CI)) + 
+  labs(title="Enrichment of rare variants in outlier genes (AFR)", x = "Z-score threshold")
+
+afr.df %>% select(sortcol,binw,inlier_all_pairs, outlier_all_pairs,outofbounds_all_pairs, thresh) %>% pivot_longer(!c(sortcol,thresh,binw), values_drop_na=TRUE, names_to="group", values_to="count") %>%
+ggplot(aes(x=binw, fill=group)) +
+  geom_col(aes(y=count),position="dodge") +
+  facet_wrap(vars(thresh)) +
+  scale_y_log10() +
+  ggtitle("All Pairs")
+
+
+afr.df %>% select(sortcol,binw,inlier_rare_pairs, outlier_rare_pairs,outofbounds_rare_pairs, thresh) %>% pivot_longer(!c(sortcol,thresh,binw), values_drop_na=TRUE, names_to="group", values_to="count") %>%
+ggplot(aes(x=binw, fill=group)) +
+  geom_col(aes(y=count),position="dodge") +
+  facet_wrap(vars(thresh)) +
+  scale_y_log10() +
+  ggtitle("Rare Pairs")
+```
+
+
 
 
 
