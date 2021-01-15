@@ -49,6 +49,7 @@ outliers = filter(outliers, (Gene %in% gene_list))
 
 # combine outlier dataframe and regions dataframe by gene
 df = left_join(x = outliers, y = regions, by = "Gene")
+df = df[complete.cases(df),]
 
 # split dataframes (df and indiv_at_rv) by individual
 df = arrange(df, Ind, CHROM, START)

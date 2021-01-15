@@ -169,7 +169,7 @@ rv_sites=${bed_outdir}/all_rv_sites.bed
 while IFS='' read -r indiv || [ -n "${indiv}" ]; do
     regions_gene_indiv=${bed_outdir}/${indiv}.gene-indiv.bed
     rv=${bed_outdir}/${indiv}.rv.bed
-
+    
     bedtools intersect -wa -wb -a $rv -b $regions_gene_indiv > ${bed_outdir}/${indiv}.rv_sites.bed
 
 done < ${bed_outdir}/indiv_list
