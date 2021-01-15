@@ -107,7 +107,43 @@ afr.output.7
 
 ```
 
+#### Enrichment with samples from African pop only
 
+```{r afr_outliers, cache=TRUE}
+# files needed for african variants
+afr_z_scores_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/outlier_calling/test/gtexV8.AFR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt'
+afr_rare_var_pairs_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/rare_variants_pop_outliers/gene-AFR-rv.txt' # table of gene-individual pairs with their rare variants
+afr_pop_list_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep/gtex_v8_wgs_individuals_AFR.txt'
+
+
+
+afr_output_prefix = 'gtex_v8_wgs_individuals_afr_outliers'
+
+afr_outliers = enrichmentTipTail(pop_subset_file = afr_pop_list_file, z_scores_file = afr_z_scores_file, rare_var_pairs_file = afr_rare_var_pairs_file, output_dir = datadir, title.mod.pop = "African Outliers", output_prefix = afr_output_prefix)
+
+afr_outliers
+```
+
+
+#### Enrichment with samples from African pop only (with bins)
+```{r}
+# files needed for african variants
+afr_z_scores_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/outlier_calling/test/gtexV8.AFR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt'
+afr_rare_var_pairs_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/rare_variants_pop_outliers/gene-AFR-rv.txt' # table of gene-individual pairs with their rare variants
+afr_pop_list_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep/gtex_v8_wgs_individuals_AFR.txt'
+
+
+
+afr_output_prefix = 'gtex_v8_wgs_individuals_afr_outliers_binw0.5'
+
+afr_outliers_bins = enrichmentTipTail(pop_subset_file = afr_pop_list_file, z_scores_file = afr_z_scores_file, rare_var_pairs_file = afr_rare_var_pairs_file, outlier_bin_width=0.5, output_dir = datadir, title.mod.pop = "African Outliers", output_prefix = afr_output_prefix)
+
+afr_outliers_bins
+```
+
+```{r}
+afr_outliers_bins
+```
 
 ## Watershed 
 ```{r wtrshdprep}
