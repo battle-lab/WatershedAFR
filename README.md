@@ -151,6 +151,8 @@ bash code/preprocessing/data_prep/get_tissue_by_individual.sh
 ```
 
 Combine the PEER-corrected data
+
+It will be located in ${datadir}/data_prep/gtex_2017-06-05_normalized_expression.txt.gz
 ```bash
 python code/preprocessing/data_prep/gather_filter_normalized_expression.py
 gzip ${datadir}/data_prep/gtex_2017-06-05_normalized_expression.txt
@@ -196,15 +198,47 @@ awk 'NR==FNR { lines[$0]=1; next } $0 in lines' ${datadir}/data_prep/gtex_v8_wgs
 ${datadir}/data_prep/gtex_v8_individuals_EUR.txt > ${datadir}/data_prep/gtex_v8_wgs_individuals_EUR.txt
 ```
 
-<!---
-#### Make flat files from normalized data
+### Outlier calling
 
-```{bash, eval=FALSE, cache=TRUE}
-python preprocessing/data_prep/gather_filter_normalized_expression_v8.py
+Call outliers on all individuals
+
+Saved to `${datadir}/outlier_calling/test/gtexV8.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt`
 ```
---->
+Rscript code/preprocessing/outlier_calling/call_outliers.R \
+  --Z.SCORES=${datadir}/data_prep/gtex_2017-06-05_normalized_expression.txt.gz \
+  --OUT=${datadir}/outlier_calling/test/gtexV8.outlier.controls.v8ciseQTLs.txt \
+  --N.PHEN=5 --ZTHRESH=3
 
-#### Prepare gene annotations from gencode
+
+# Remove global outliers
+Rscript code/preprocessing/outlier_calling/identify_global_outliers.R \
+  --OUTLIERS=${datadir}/outlier_calling/test/gtexV8.outlier.controls.v8ciseQTLs.txt \
+  --METHOD=proportion
+```
+
+
+Call outliers on African individuals
+
+Saved to `${datadir}/outlier_calling/test/gtexV8.AFR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt`
+```
+Rscript code/preprocessing/outlier_calling/call_outliers.R \
+  --Z.SCORES=${datadir}/data_prep/gtex_2017-06-05_normalized_expression.txt.gz \
+  --OUT=${datadir}/outlier_calling/test/gtexV8.AFR.outlier.controls.v8ciseQTLs.txt \
+  --POP=${datadir}/data_prep/gtex_v8_wgs_individuals_AFR.txt \
+  --N.PHEN=5 --ZTHRESH=3
+
+
+# Remove global outliers
+Rscript code/preprocessing/outlier_calling/identify_global_outliers.R \
+  --OUTLIERS=${datadir}/outlier_calling/test/gtexV8.AFR.outlier.controls.v8ciseQTLs.txt \
+  --METHOD=proportion
+```
+
+GTEx v8 outliers are located in 
+`/work-zfs/abattle4/bstrober/rare_variant/gtex_v8/splicing/input_data/outlier_calls/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt`
+Save to `${datadir}/outlier_calling`
+
+### Prepare gene annotations from gencode
 
 Manipulate annotation files in various ways to make them easier to use downstream.
 Outputs
@@ -217,18 +251,6 @@ bash ${rootdir}/WatershedAFR/code/preprocessing/data_prep/process_reference_file
 ${rawdir}/GTEx/gencode.v26.GRCh38.genes.gtf \
 ${datadir}/data_prep
 ```
-
-
-### Outlier calling
-<!---
-Using outlier calling method from watershed paper
-
-https://github.com/nmferraro5/correlation_outliers
---->
-
-GTEx v8 outliers are located in 
-`/work-zfs/abattle4/bstrober/rare_variant/gtex_v8/splicing/input_data/outlier_calls/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt`
-Save to `${datadir}/outlier_calling`
 
 ### Finding rare variants
 Requires `bcftools` and `bedtools`
@@ -258,6 +280,19 @@ bash code/preprocessing/rare_variants/find_rare_variants.sh \
 -l ${datadir}/data_prep/gtex_v8_wgs_individuals_AFR.txt \
 -p "AFR" \
 -o ${datadir}/outlier_calling/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt
+
+```
+
+#### African Individuals with only African outlier calling
+
+```bash
+bash code/preprocessing/rare_variants/find_rare_variants.sh \
+-d ${datadir}/rare_variants_pop_outliers \
+-g ${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_WholeGenomeSeq_838Indiv_Analysis_Freeze.SHAPEIT2_phased.vcf.gz \
+-r ${datadir}/data_prep/gencode.v26.GRCh38.genes_padded10kb_PCandlinc_only.bed \
+-l ${datadir}/data_prep/gtex_v8_wgs_individuals_AFR.txt \
+-p "AFR" \
+-o ${datadir}/outlier_calling/test/gtexV8.AFR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt
 
 ```
 

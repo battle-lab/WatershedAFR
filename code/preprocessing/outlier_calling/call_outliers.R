@@ -1,96 +1,85 @@
 #!/usr/bin/env Rscript
 
-## Script to call outliers given a file with Z-scores.
-## The two first columns have the gene and tissue or phenotype, and the gene columne is named "Gene".
-## Subsequent columns have Z-score data for each individual and the individual ID is the column name.
-
-## Load required packages
 library(data.table)
-library(dtplyr)
-library(dplyr, warn.conflicts = FALSE)
+library(reshape2)
+library(plyr)
 library(optparse)
-# library(reshape2)
-library(foreach)
 library(doMC)
-# library(robustbase)
 
-## Register parallel backend
-registerDoMC(cores = 2)
+###
+### Setup parallel processing
+###
+doMC::registerDoMC(cores=2)
 
-#--------------- FUNCTIONS
+############ FUNCTIONS
 
-
-#### Function to compute precision matrices for each gene and call outliers
-## Input: Normalized data in bed format with the final N columns representing the N samples
-## Output: Assignments of outliers and controls for genes with outliers
-call.outliers <- function(data, nphen, zthresh) {
-    cat('Melting...')
-    data.melted = melt(data, id.vars = names(data)[1:2], variable.name = 'Ind', value.name = 'Z')
-    colnames(data.melted)[3:4] = c('Ind', 'Z')
-    rm(data)
-    
-    
-    cat('Computing median Z scores across tissues...')
-    test.stats = data.melted %>% group_by(Ind, Gene) %>%
-        summarise(MedZ = median(Z, na.rm = T),
-                  Df = sum(!is.na(Z)))
-    
-    # pick outliers
-    cat('Restricting to individuals with at least 5 tissues...')
-    test.stats = test.stats %>% filter(Df >= nphen) %>%
-      group_by(Gene) %>%
-      mutate(N = n())
-    cat('Picking outliers...')
-    outliers = test.stats %>% arrange(desc(abs(MedZ))) %>%
-      mutate(Y = ifelse(abs(MedZ) > zthresh, 'outlier', 'control')) %>%
-      ungroup() %>% select(Ind, Gene, N, Df, MedZ, Y) %>% as_tibble()
-    
-    return(outliers)
+###
+### Functions for calculating number of tissues/sample and meta-analysis z-score
+###
+meta.n = function(values) {
+  length(values) - sum(is.na(values))
 }
 
-#### Function to write the outlier information to file.
-## Input: data frame with data to write and output filename
-## Output: None, writes directly to file.
-write.outliers <- function(outliers, filename) {
-    write.table(outliers, filename, sep = '\t', col.names = T, row.names = F, quote = F)
+meta.median = function(values) {
+  median(values, na.rm=T)
 }
 
-#--------------- MAIN
+meta.analysis = function(x) {
+  samples=colnames(x)[3:ncol(x)]
+  y = t(x[,3:ncol(x)]) # individuals (rows) x tissues (columns)
+  n = apply(y, 1, meta.n)
+  m1 = apply(y, 1, meta.median)
+  data.frame(sample = samples, n.tissues = n, median.z = m1)
+}
+
+############ MAIN
 
 ##-- Read command line arguments
-option_list = list(make_option(c('--Z.SCORES'), type = 'character', default = NULL, help = 'path to the Z-score data'),
-	make_option(c('--OUT'), type = 'character', default = NULL, help = 'path to the outlier file output'),
-	make_option(c('--GLOBAL'), type = 'character', default = NA, help = 'global outlier file'),
-	make_option(c('--N.PHEN'), type = 'numeric', default = 5, help = 'number of observed phenotypes required to test for outlier'),
-	make_option(c('--ZTHRESH'), type = 'numeric', default = 3, help = 'threshold for abs(MedZ) outliers'))
+option_list = list(make_option(c('--Z.SCORES'), type = 'character', default = NULL, help = 'path to the normalized expression data'),
+                   make_option(c('--OUT'), type = 'character', default = NULL, help = 'path to the outlier file output'),
+                   make_option(c('--POP'), type = 'character', default = NULL, help = 'path to list of individuals belonging to specific population'),
+                   make_option(c('--N.PHEN'), type = 'numeric', default = 5, help = 'number of observed phenotypes required to test for outlier'),
+                   make_option(c('--ZTHRESH'), type = 'numeric', default = 3, help = 'threshold for abs(MedZ) outliers'))
 
 opt_parser = OptionParser(option_list = option_list)
 opt = parse_args(opt_parser)
 
+
+expression_file = opt$Z.SCORES
+outfile = opt$OUT
+pop_file = opt$POP
 nphen = opt$N.PHEN
 zthresh = opt$ZTHRESH
-outFile = opt$OUT
-globalFile = opt$GLOBAL
-# popFile = opt$POP
 
-##-- Analysis
+###
+### Loading data
+###
+## Load file with normalized expression data
+data = fread(expression_file, fill = TRUE, header = TRUE)
 
-## Read in the normalized data
-cat('Reading normalized expression data')
-data = as.data.frame(fread(opt$Z.SCORES, fill = TRUE))
-# data = as.data.frame(fread('/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep/norm_expr_test.txt.gz', fill = TRUE))
-
-
-##-- Call outliers using median Z-score
-# Filtering global outliers
-if (!is.na(globalFile)) {
-    goutliers = fread(globalFile, header=F)
-    rinds = which(colnames(data) %in% goutliers$V1)
-    data = data[,-1*rinds]
+# load population list and keep individuals belonging to specified population
+if (!is.null(pop_file)){
+  pop_list = as.character(read.table(pop_file, header = FALSE)$V1)
+  
+  cols_to_keep = c(c("Tissue","Gene"),pop_list)
+  data = data[,..cols_to_keep]
 }
 
-# Filtering for individuals in a specified population
+# sort the data by gene
+setkey(data, Gene)
 
-## Median Z-score
-outliers.medz = call.outliers(data, nphen, zthresh)
-write.outliers(outliers.medz, outFile)
+## Get sample list
+individs = colnames(data)[-c(1,2)]
+
+## Calculate meta-analysis test statistics
+results = ddply(data, .(Gene), meta.analysis, .parallel = TRUE)
+
+## Remove samples with < n tissues
+results = results[results$n.tissues >= nphen,]
+
+# Find outliers
+results$Y = ifelse(abs(results$median.z) > zthresh, 'outlier', 'control')
+
+# Rename columns and save
+colnames(results) = c("Gene","Ind","Df","MedZ","Y")
+write.table(results, outfile, sep = '\t', col.names = T, row.names = F, quote = F)
