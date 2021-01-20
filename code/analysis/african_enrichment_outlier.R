@@ -1,10 +1,10 @@
 source('./enrichment.R')
 
-thresholds <- sort(unique(c(seq(.2,2,.2), seq(.5,5,.5))))
+thresholds <- sort(unique(c(seq(.2,1,.2), seq(1,2,.2), seq(3,4,0.2), seq(.5,5,.5))))
 rootdir <- '/scratch/groups/abattle4/victor/WatershedAFR'
 datadir <- file.path(rootdir,'data','enrichment')
 outlier_tag <- '_outliers'
-binw <- 0.25
+
 
 # African
 
@@ -13,12 +13,13 @@ binw <- 0.25
 if (outlier_tag == '_outliers'){
   afr_z_scores_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/outlier_calling/test/gtexV8.AFR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt'
 } else{
-afr_z_scores_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/outlier_calling/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt'
+  afr_z_scores_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/outlier_calling/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt'
 }
+
 afr_rare_var_pairs_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/rare_variants/gene-AFR-rv.txt' # table of gene-individual pairs with their rare variants
 afr_pop_list_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep/gtex_v8_wgs_individuals_AFR.txt'
 
-output_dir <-file.path(datadir, paste0(basename(tools::file_path_sans_ext(afr_pop_list_file)),outlier_tag))
+output_dir <-file.path(datadir, paste0( basename(tools::file_path_sans_ext(afr_pop_list_file)),outlier_tag))
 dir.create(output_dir,showWarnings = FALSE)
 
 afr.output <- enrichmentTipTail(pop_subset_file = afr_pop_list_file,
@@ -26,10 +27,9 @@ afr.output <- enrichmentTipTail(pop_subset_file = afr_pop_list_file,
                                 rare_var_pairs_file = afr_rare_var_pairs_file,
                                 output_dir = output_dir,
                                 title.mod.pop = "African",
-                                thresholds = thresholds,
-                                outlier_bin_width = binw)
+                                thresholds = thresholds)
 
 
 
-saveRDS(afr.output, file=file.path(datadir,paste0('african_1to5_binw', binw,outlier_tag,'.rds')))
+saveRDS(afr.output, file=paste0(datadir,'/african',outlier_tag,'_1to5.rds'))
 
