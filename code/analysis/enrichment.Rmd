@@ -15,7 +15,7 @@ library(ggplot2)
 source('./enrichment.R')
 
 rootdir <- '/scratch/groups/abattle4/victor/WatershedAFR/'
-datadir <- paste0(rootdir,'/','data/')
+datadir <- paste0(rootdir,'/data/enrichment/')
 
 ```
 ##European Samples
@@ -117,6 +117,14 @@ afr.output.7
 ```
 
 #### Enrichment with samples from African pop only
+
+
+
+```{r afr_outliers_jb}
+afr.output.8 <- readRDS(paste0(datadir,'enrichment/african_outliers_1to5.rds'))
+
+afr.output.8
+```
 
 ```{r afr_outliers, cache=TRUE}
 # files needed for african variants
