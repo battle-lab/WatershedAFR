@@ -1,0 +1,75 @@
+---
+  title: "Enrichment with population specific outliers"
+output:
+  html_document:
+  pairs.df_print: paged
+---
+  
+  
+```{r import_libraries, cache=TRUE}
+library(tidyr)
+library(dplyr)
+library(data.table)
+library(ggplot2)
+
+source('./enrichment.R')
+
+rootdir = '/scratch/groups/abattle4/victor/WatershedAFR'
+datadir = paste0(rootdir,'/data')
+
+```
+
+```{r enrichment_african, cache=TRUE}
+
+# files needed for African variants
+afr_z_scores_file = paste0(datadir,'/outlier_calling/AFR/gtexV8.AFR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt')
+afr_rare_var_pairs_file = paste0(datadir,'/rare_variants_pop_norm/gene-AFR-rv.txt')
+afr_pop_list_file = paste0(datadir,'/data_prep/gtex_v8_wgs_individuals_AFR.txt')
+
+afr_output_prefix = 'african_data_only'
+output_dir = paste0(datadir,'/enrichment')
+
+
+afr_outliers = enrichmentTipTail(pop_subset_file = afr_pop_list_file, z_scores_file = afr_z_scores_file, rare_var_pairs_file = afr_rare_var_pairs_file, output_dir = output_dir, title.mod.pop = "African data only", output_prefix = afr_output_prefix)
+
+saveRDS(afr_outliers, file=paste0(output_dir,'/african_data_only.rds'))
+
+afr_outliers
+
+```
+
+
+```{r enrichment_european, cache=TRUE}
+
+# files needed for European variants
+eur_z_scores_file = paste0(datadir,'/outlier_calling/EUR/gtexV8.EUR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt')
+eur_rare_var_pairs_file = paste0(datadir,'/rare_variants_pop_norm/gene-EUR-rv.txt')
+eur_pop_list_file = paste0(datadir,'/data_prep/gtex_v8_wgs_individuals_EUR.txt')
+
+eur_output_prefix = 'european_data_only'
+output_dir = paste0(datadir,'/enrichment')
+
+
+eur_outliers = enrichmentTipTail(pop_subset_file = eur_pop_list_file, z_scores_file = eur_z_scores_file, rare_var_pairs_file = eur_rare_var_pairs_file, output_dir = output_dir, title.mod.pop = "European data only", output_prefix = eur_output_prefix)
+
+saveRDS(eur_outliers, file=paste0(output_dir,'/european_data_only.rds'))
+
+eur_outliers
+```
+
+```{r pop_compare, cache=TRUE}
+
+afr_outliers = readRDS(paste0(output_dir,'/african_data_only.rds'))
+eur_outliers = readRDS(paste0(output_dir,'/european_data_only.rds'))
+
+enrich_afr = afr_outliers$enrichment %>% mutate(source = "African")
+enrich_eur = eur_outliers$enrichment %>% mutate(source = "European")
+
+enrich = bind_rows(enrich_afr, enrich_eur)
+
+ggplot(enrich, aes(x = sortcol, y = enrichment, color=source)) +
+  geom_line() + 
+  geom_point() + 
+  geom_errorbar(aes(ymin=lower_CI, ymax=upper_CI)) +
+  labs(title="Enrichment of rare variants in outlier genes" , x = "Z-score threshold")
+```
