@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 ## R script to split the entire GTEx matrices into files for each tissue
-## then process RPKM and read count matrices so that columns match covariate files.
+## then process TPM and read count matrices so that columns match covariate files.
 ## Prepare matrices for input to PEER.
 
 ## Load required packages
@@ -9,11 +9,23 @@ library(data.table)
 library(dplyr)
 library(tidyr)
 library(stringr)
+library(optparse)
 
 ##------------- MAIN
 
-cov_dir='/scratch/groups/abattle4/victor/WatershedAFR/raw_data/GTEx/GTEx_Analysis_v8_eQTL_covariates'
-outdir='/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep'
+## Read command line arguments
+option_list = list(make_option(c('--COV'), type = 'character', default = NULL, help = 'directory containing covariates'),
+                   make_option(c('--OUT'), type = 'character', default = NULL, help = 'output file name'))
+
+opt_parser = OptionParser(option_list = option_list)
+opt = parse_args(opt_parser)
+
+cov_dir=opt$
+outdir=opt$OUT
+
+
+# cov_dir='/scratch/groups/abattle4/victor/WatershedAFR/raw_data/GTEx/GTEx_Analysis_v8_eQTL_covariates'
+# outdir='/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep'
 
 # open covariate files for each tissue
 cov_files = list.files(path=cov_dir, pattern="*covariates.txt", full.names=TRUE)

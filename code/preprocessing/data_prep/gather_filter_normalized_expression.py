@@ -10,15 +10,28 @@
 # Gets tissues and individual IDs from file
 
 import os
+import argparse
 import numpy as np
 from operator import itemgetter
 
-dir = '/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep'
-tissueNamesFile = os.path.join(dir,'gtex_2017-06-05_tissues_all_normalized_samples.txt')
-individualsFile = os.path.join(dir,'gtex_2017-06-05_individuals_all_normalized_samples.txt')
-outfile = os.path.join(dir,'gtex_2017-06-05_normalized_expression.txt')
+parser = argparse.ArgumentParser()
+parser.add_argument('-p', '--peerdir', help='directory with PEER corrected data')
+parser.add_argument('-t', '--tissues', help='file with list of tissues available after PEER correction')
+parser.add_argument('-i', '--individuals', help='file with list of individuals available after PEER correction')
+parser.add_argument('-o', '--output', help='output file will all PEER corrected data')
+args = parser.parse_args()
 
-exprdir = os.path.join(dir,'PEER/')
+exprdir = args.peerdir
+tissueNamesFile = args.tissues
+individualsFile = args.individuals
+outfile = args.output
+
+# dir = '/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep'
+# tissueNamesFile = os.path.join(dir,'gtex_2017-06-05_tissues_all_normalized_samples.txt')
+# individualsFile = os.path.join(dir,'gtex_2017-06-05_individuals_all_normalized_samples.txt')
+# outfile = os.path.join(dir,'gtex_2017-06-05_normalized_expression.txt')
+# 
+# exprdir = os.path.join(dir,'PEER/')
 
 # read IDs into a list
 # add 'GTEX-' as a prefix and sort by id

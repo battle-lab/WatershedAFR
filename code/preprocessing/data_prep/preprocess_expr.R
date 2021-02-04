@@ -6,6 +6,7 @@
 ## Load required packages
 library(data.table)
 library(stringr)
+library(optparse)
 
 ##------------- FUNCTIONS
 
@@ -15,6 +16,7 @@ library(stringr)
 ## Log2(tpm + 2) transform the data, then z-transform.
 ## Finally, output the transformed matrix to a new file.
 ztrans.tissue = function(tissue, dir, covs, read.filt = 6, tpm.filt = 0.1) {
+    cat(paste0(tissue,'\n'))
     tpm = fread(paste0(dir, '/', tissue, '.tpm.txt'))
     reads = fread(paste0(dir, '/', tissue, '.reads.txt'))
     ## sanity checks
@@ -27,6 +29,9 @@ ztrans.tissue = function(tissue, dir, covs, read.filt = 6, tpm.filt = 0.1) {
     reads = reads[, covariates.subset, with = F]
     ind.filt = round(0.2*ncol(tpm))
     zero.filt = round(0.05*ncol(tpm))
+    if (zero.filt == 0) {
+      zero.filt = 1
+    }
     indices.keep = rowSums(tpm > tpm.filt & reads > read.filt) >= ind.filt
     zero.keep = rowSums(tpm > 0) >= zero.filt
     indices.keep = indices.keep[which(indices.keep %in% zero.keep)]
@@ -39,14 +44,30 @@ ztrans.tissue = function(tissue, dir, covs, read.filt = 6, tpm.filt = 0.1) {
 
 ##------------- MAIN
 
-dir = '/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep'
-peer.dir = paste0(dir,'/PEER')
-cov.file = paste0(dir,'/gtex_v8_eQTL_covariates.txt')
-map.file = paste0(dir, '/gtex_v8_samples_tissues.txt')
+## Read command line arguments
+option_list = list(make_option(c('--COV'), type = 'character', default = NULL, help = 'directory containing covariates'),
+                   make_option(c('--MAP'), type = 'character', default = NULL, help = 'path to sample-to-tissue map'),
+                   make_option(c('--MIN.SAMPLE'), type = 'integer', default = 70, help = 'minimum number of samples per tissue'),
+                   make_option(c('--PEER'), type = 'character', default = NULL, help = 'directory to write transformed file data to'))
 
-## Read in list of tissues and keep those with more than 50 samples
+opt_parser = OptionParser(option_list = option_list)
+opt = parse_args(opt_parser)
+
+cov.file = opt$COV
+map.file = opt$MAP 
+sample_per_tissue_min = opt$MIN.SAMPLE
+peer.dir = opt$PEER
+
+
+# dir = '/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep'
+# peer.dir = paste0(dir,'/PEER')
+# cov.file = paste0(dir,'/gtex_v8_eQTL_covariates.txt')
+# map.file = paste0(dir, '/gtex_v8_samples_tissues.txt')
+# sample_per_tissue_min = 70
+
+## Read in list of tissues and keep those with more than the minimum samples per tissue
 tissue.list = read.table(map.file, header = F, stringsAsFactors = F)[,2]
-tissues = names(table(tissue.list)[table(tissue.list) > 50]) 
+tissues = names(table(tissue.list)[table(tissue.list) > sample_per_tissue_min]) 
 tissues = tissues[tissues != 'Cells_Leukemia_cell_line_CML'] # exclude K-652 samples
 
 ## Read in covariates (PC's 1-5 and sex)
@@ -54,6 +75,6 @@ covariates = read.table(cov.file, header = T)
 
 sapply(tissues, ztrans.tissue, dir = peer.dir, covs = covariates)
 
-cat(paste("log2(tpm + 2) transformed data saved to", peer.dir))
-cat(paste(length(tissues),"out of",length(unique(tissue.list)), "tissues had more than 50"))
-cat("The remaining tissues were not log2-transformed")
+cat(paste("log2(tpm + 2) transformed data saved to", peer.dir,'\n'))
+cat(paste(length(tissues),"out of",length(unique(tissue.list)), "tissues had more than", sample_per_tissue_min, "samples\n"))
+cat("The remaining tissues were not log2-transformed\n")
