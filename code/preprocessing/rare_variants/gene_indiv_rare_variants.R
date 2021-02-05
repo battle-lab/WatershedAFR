@@ -35,7 +35,7 @@ outdir = opt$outdir
 rv_sites = read.table(rv_sites_file, header = FALSE, check.names = FALSE)
 
 # get relevant columns
-df = rv_sites[,c("V10","V11","V1","V2","V3","V4","V5")]
+df = rv_sites[,c("V10", "V6", "V7", "V2", "V3", "V4", "V5")]
 colnames(df) = c("Gene","Ind","Chrom","Start","End","Ref","Alt")
 
 # sort by gene
@@ -47,4 +47,4 @@ df = arrange(df, Gene)
 # save
 filename = paste0(outdir,'/gene-', popname, '-rv.txt')
 write.table(df, filename, sep = '\t', row.names = FALSE, quote = FALSE)
-print(paste0("Saved to ",filename))
+cat(paste0("Saved to ",filename, '\n'))

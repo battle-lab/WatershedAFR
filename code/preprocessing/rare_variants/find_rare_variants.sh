@@ -13,7 +13,6 @@
 # pop_list=${datadir}/data_prep/gtex_v8_wgs_individuals_EUR.txt
 # pop="EUR"
 # 
-# outliers=${datadir}/outlier_calling/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt
 
 ## read in arguments
 while getopts d:g:r:l:p:o: flag
@@ -24,7 +23,6 @@ do
         r) regions=${OPTARG};;
         l) pop_list=${OPTARG};;
         p) pop=${OPTARG};;
-        o) outliers=${OPTARG};;
     esac
 done
 echo $rvdir
@@ -32,7 +30,6 @@ echo $gtex_raw
 echo $regions
 echo $pop_list;
 echo $pop
-echo $outliers
 
 ## Check if bcftools and bedtools are available. If not, exit the script
 if ! command -v bcftools &> /dev/null
@@ -47,6 +44,9 @@ then
     exit
 fi
 
+# Make output directory
+mkdir -p $rvdir
+
 ## Filter for rare variants within 10kb +/- window around gene body of genes that are protein coding and lincRNA coding
 # Save the resulting VCFs to `gtex.vcf.gz` and `1KG.padded10kb_PCandlinc_only.vcf.gz` in `${datadir}/rare_variants`
 
@@ -59,6 +59,9 @@ if [ -f "$gtex" ]; then
         echo "**** Filtered GTEx VCF already exists"
 else
         bash code/preprocessing/rare_variants/filter_gtex.sh
+        -d $rvdir \
+        -g $gtex_raw \
+        -r $regions
 fi
 
 if [ -f "$gtex.tbi" ]; then
@@ -75,7 +78,8 @@ _1kg=${rvdir}/1KG.padded10kb_PCandlinc_only.vcf.gz
 if [ -f "$_1kg" ]; then
         echo "**** Filtered 1KG VCF already exists"
 else
-        bash code/preprocessing/rare_variants/filter_1kg.sh
+        bash code/preprocessing/rare_variants/filter_1kg.sh \
+
 fi
 
 
@@ -143,44 +147,20 @@ echo "**** List samples that have each rare variant"
 
 indiv_at_rv=${rvdir}/gtex_${pop}_rare.QC.indiv.txt
 
-echo -e "CHROM\tPOS\tREF\tALT\tSAMPLE" > $indiv_at_rv
-bcftools query -f'[%CHROM\t%POS0\t%REF\t%ALT\t%SAMPLE\n]' --include 'GT="alt"' $gtex_pop_rareQC \
->> $indiv_at_rv
+bcftools query -f'[%CHROM\t%POS0\t%END\t%REF\t%ALT\t%SAMPLE\n]' --include 'GT="alt"' $gtex_pop_rareQC \
+> $indiv_at_rv
 
-# Create two bed files for each individual:
-#- 10kb window before and after the gene in the gene-individual pair
-#- all rare variants belonging to the individual
-echo "**** Running bed_prep.R to create bed files for each sample"
 
-bed_outdir=${rvdir}/rv_bed_${pop}
-
-Rscript code/preprocessing/rare_variants/bed_prep.R \
---outliers=$outliers \
---population=$pop_list \
---regions=$regions \
---indiv_at_rv=$indiv_at_rv \
---outdir=$bed_outdir
-
-# Find overlap between gene-individual pair's region and rare variants
-echo "**** Matching rare variants to their gene-individual pairs"
-
-rv_sites=${bed_outdir}/all_rv_sites.bed
-
-while IFS='' read -r indiv || [ -n "${indiv}" ]; do
-    regions_gene_indiv=${bed_outdir}/${indiv}.gene-indiv.bed
-    rv=${bed_outdir}/${indiv}.rv.bed
-    
-    bedtools intersect -wa -wb -a $rv -b $regions_gene_indiv > ${bed_outdir}/${indiv}.rv_sites.bed
-
-done < ${bed_outdir}/indiv_list
-
-cat $(ls ${bed_outdir}/*.rv_sites.bed) > $rv_sites
+# Use bedtools to intersect list of rare variants with protein and lincRNA coding genes padded by 10kb around gene body
+echo "**** Subset rare variants that lie within 10kb around protein coding and lincRNA coding genes"
+rv_sites_raw=${rvdir}/gene-${pop}-rv.raw.txt
+bedtools intersect -wa -wb -a $indiv_at_rv -b $regions > $rv_sites_raw
 
 #Get list of rare variants per each gene-individual pair
-echo "Running gene_indiv_rare_variants.R"
+echo "**** Building file with list of rare variants per each gene-individual pair"
 
 Rscript code/preprocessing/rare_variants/gene_indiv_rare_variants.R \
---rv_sites=$rv_sites \
+--rv_sites=$rv_sites_raw \
 --popname=$pop \
 --outdir=$rvdir
 

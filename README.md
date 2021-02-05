@@ -87,140 +87,6 @@ See [data_sources.md](https://github.com/battle-lab/WatershedAFR/blob/master/dat
 ## Preprocessing pipeline
 Goal: Preprocess raw data to be used as input for training Watershed models.
 
-### Expression data correction and normalization
-
-
-#### Generate tpm and read count matrices from GTEx V8
-
-Generate file mapping sample identifiers to tissues. Restrict to samples that pass RNA-seq QC (marked as RNASEQ in SMAFRZE column).
-```bash
-cat ${rawdir}/GTEx/GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt | tail -n+2 | cut -f1,7,17 | \
-  sed 's/ - /_/' | sed 's/ /_/g' | sed 's/(//' | sed 's/)//' | sed 's/c-1/c1/' | \
-  awk '$3=="RNASEQ" {print $1"\t"$2}' | sort -k 1 > ${datadir}/data_prep/gtex_v8_samples_tissues.txt
-```
-
-Splits the combined TPM file and read counts file by tissue.
-```bash
-# split TPM
-OUT=${datadir}/data_prep/PEER
-GTEX=${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_tpm.gct.gz
-SAMPLE=${datadir}/data_prep/gtex_v8_samples_tissues.txt
-END='.tpm.txt'
-python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX --out $OUT --sample $SAMPLE --end $END
-
-
-# split read counts
-GTEX=${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_reads.gct.gz
-END='.reads.txt'
-python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX --out $OUT --sample $SAMPLE --end $END
-
-```
-
-Population specific TPM and read counts
-```bash
-# Subset `gtex_v8_samples_tissues.txt` by African and European populations
-Rscript code/preprocessing/data_prep/population_sample_tissue_map.R \
-  --MAP ${datadir}/data_prep/gtex_v8_samples_tissues.txt \
-  --POP.LIST ${datadir}/data_prep/gtex_v8_individuals_AFR.txt \
-  --OUT ${datadir}/data_prep/gtex_v8_samples_tissues_AFR.txt
-  
-Rscript code/preprocessing/data_prep/population_sample_tissue_map.R \
-  --MAP ${datadir}/data_prep/gtex_v8_samples_tissues.txt \
-  --POP.LIST ${datadir}/data_prep/gtex_v8_individuals_EUR.txt \
-  --OUT ${datadir}/data_prep/gtex_v8_samples_tissues_EUR.txt
-
-# split TMP
-OUT_AFR=${datadir}/data_prep/PEER_AFR
-OUT_EUR=${datadir}/data_prep/PEER_EUR
-GTEX=${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_tpm.gct.gz
-SAMPLE_AFR=${datadir}/data_prep/gtex_v8_samples_tissues_AFR.txt
-SAMPLE_EUR=${datadir}/data_prep/gtex_v8_samples_tissues_EUR.txt
-END='.tpm.txt'
-python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX --out $OUT_AFR --sample $SAMPLE_AFR --end $END
-python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX --out $OUT_EUR --sample $SAMPLE_EUR --end $END
-
-# split read counts
-GTEX=${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_reads.gct.gz
-END='.reads.txt'
-python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX --out $OUT_AFR --sample $SAMPLE_AFR --end $END
-python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX --out $OUT_EUR --sample $SAMPLE_EUR --end $END
-
-```
-
-#### Generate PEER corrected data (includes non-EAs) with covariates removed
-
-Build covariate matrix with PC's 1 - 5 and sex from the eQTL covariates by tissue.
-```bash
-Rscript code/preprocessing/data_prep/combine_covariates_across_tissues.R \
-  --COV ${rawdir}/GTEx/GTEx_Analysis_v8_eQTL_covariates \
-  --OUT ${datadir}/data_prep
-```
-
-For each tissue, filter for genes with > 20% individuals with TPM > 0.1 and read count > 6, Log2(tpm + 2) transfrom the data, and then z-transform.
-```bash
-Rscript code/preprocessing/data_prep/preprocess_expr.R \
-  --COV ${datadir}/data_prep/gtex_v8_eQTL_covariates.txt \
-  --MAP ${datadir}/data_prep/gtex_v8_samples_tissues.txt \
-  --PEER ${datadir}/data_prep/PEER
-```
-
-Rename eQTL files from "cervical_c-1" to "cervical_c1" for consistency
-```bash
-rename c-1 c1 ${rawdir}/GTEx/GTEx_Analysis_v8_eQTL/*c-1*
-```
-
-Generate list of top eQTLs for each gene in each tissue, extract from VCF, convert to number alternative alleles
-```bash
-bash code/preprocessing/data_prep/get_eqtl_genotypes.sh
-```
-
-Run PEER correction and compute residuals
-```bash
-# Compute PEER factors (use PEER dockerimage if unable to install peer natively https://hub.docker.com/r/bryancquach/peer)
-bash code/preprocessing/data_prep/calculate_PEER_factors.sh \
-  -p ${datadir}/data_prep/PEER \
-  -e ${rawdir}/GTEx/GTEx_Analysis_v8_eQTL \
-  -c ${datadir}/data_prep/gtex_v8_eQTL_covariates.txt \
-  -g ${datadir}/data_prep/gtex_2017-06-05_v8_genotypes_cis_eQTLs_012_processed.txt \
-  -t ~/scratch \
-  -d ~/code/PEER/peer-1.3.simg
-  
-# Compute residuals (does not need PEER package)
-bash code/preprocessing/data_prep/calculate_PEER_residuals.sh \
-  -p ${datadir}/data_prep/PEER \
-  -e ${rawdir}/GTEx/GTEx_Analysis_v8_eQTL \
-  -c ${datadir}/data_prep/gtex_v8_eQTL_covariates.txt \
-  -g ${datadir}/data_prep/gtex_2017-06-05_v8_genotypes_cis_eQTLs_012_processed.txt \
-  -t ~/scratch
-
-```
-
-#### Combine PEER-corrected data into a single flat file
-
-Generate files with data on what tissues are available per individual after PEER correction
-```bash
-bash code/preprocessing/data_prep/get_tissue_by_individual.sh \
-  -p ${datadir}/data_prep/PEER \
-  -o ${datadir}/data_prep/gtex_2017-06-05_tissue_by_ind.txt \
-  -t ${datadir}/data_prep/gtex_2017-06-05_tissues_all_normalized_samples.txt \
-  -i ${datadir}/data_prep/gtex_2017-06-05_individuals_all_normalized_samples.txt
-
-```
-
-Combine the PEER-corrected data
-
-It will be located in ${datadir}/data_prep/gtex_2017-06-05_normalized_expression.txt.gz
-```bash
-python code/preprocessing/data_prep/gather_filter_normalized_expression.py \
-  -p ${datadir}/data_prep/PEER \
-  -t ${datadir}/data_prep/gtex_2017-06-05_tissues_all_normalized_samples.txt \
-  -i ${datadir}/data_prep/gtex_2017-06-05_individuals_all_normalized_samples.txt \
-  -o ${datadir}/data_prep/gtex_2017-06-05_normalized_expression.txt
-
-gzip ${datadir}/data_prep/gtex_2017-06-05_normalized_expression.txt
-```
-
-
 #### Make lists of individuals
 Make list of all individuals from GTEx v8. Make list of all individuals with reported African American ancestry and European ancestry. Requires `bcftools`
 * `${datadir}/data_prep/gtex_v8_individuals_all.txt` - All 948 individuals from GTEx v8
@@ -260,6 +126,224 @@ awk 'NR==FNR { lines[$0]=1; next } $0 in lines' ${datadir}/data_prep/gtex_v8_wgs
 ${datadir}/data_prep/gtex_v8_individuals_EUR.txt > ${datadir}/data_prep/gtex_v8_wgs_individuals_EUR.txt
 ```
 
+### Expression data correction and normalization
+
+#### Generate tpm and read count matrices from GTEx V8
+
+Generate file mapping sample identifiers to tissues. Restrict to samples that pass RNA-seq QC (marked as RNASEQ in SMAFRZE column).
+```bash
+cat ${rawdir}/GTEx/GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt | tail -n+2 | cut -f1,7,17 | \
+  sed 's/ - /_/' | sed 's/ /_/g' | sed 's/(//' | sed 's/)//' | sed 's/c-1/c1/' | \
+  awk '$3=="RNASEQ" {print $1"\t"$2}' | sort -k 1 > ${datadir}/data_prep/gtex_v8_samples_tissues.txt
+```
+
+Splits the combined TPM file and read counts file by tissue.
+```bash
+# split TPM
+GTEX_tpm=${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_tpm.gct.gz
+OUT=${datadir}/data_prep/PEER
+SAMPLE=${datadir}/data_prep/gtex_v8_samples_tissues.txt
+python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX_tpm --out $OUT --sample $SAMPLE --end .tpm.txt
+
+# split read counts
+GTEX_reads=${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_reads.gct.gz
+python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX_reads --out $OUT --sample $SAMPLE --end .reads.txt
+
+```
+
+Population specific TPM and read counts
+```bash
+# Subset `gtex_v8_samples_tissues.txt` by African and European populations
+Rscript code/preprocessing/data_prep/population_sample_tissue_map.R \
+  --MAP ${datadir}/data_prep/gtex_v8_samples_tissues.txt \
+  --POP.LIST ${datadir}/data_prep/gtex_v8_individuals_AFR.txt \
+  --OUT ${datadir}/data_prep/gtex_v8_samples_tissues_AFR.txt
+  
+Rscript code/preprocessing/data_prep/population_sample_tissue_map.R \
+  --MAP ${datadir}/data_prep/gtex_v8_samples_tissues.txt \
+  --POP.LIST ${datadir}/data_prep/gtex_v8_individuals_EUR.txt \
+  --OUT ${datadir}/data_prep/gtex_v8_samples_tissues_EUR.txt
+
+# split TMP
+GTEX_tpm=${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_tpm.gct.gz
+
+OUT_AFR=${datadir}/data_prep/PEER_AFR
+SAMPLE_AFR=${datadir}/data_prep/gtex_v8_samples_tissues_AFR.txt
+python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX_tpm --out $OUT_AFR --sample $SAMPLE_AFR --end .tpm.txt
+
+OUT_EUR=${datadir}/data_prep/PEER_EUR
+SAMPLE_EUR=${datadir}/data_prep/gtex_v8_samples_tissues_EUR.txt
+python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX_tpm --out $OUT_EUR --sample $SAMPLE_EUR --end .tpm.txt
+
+# split read counts
+GTEX_reads=${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_reads.gct.gz
+python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX_reads --out $OUT_AFR --sample $SAMPLE_AFR --end .reads.txt
+python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX_reads --out $OUT_EUR --sample $SAMPLE_EUR --end .reads.txt
+
+```
+
+#### Generate PEER corrected data (includes non-EAs) with covariates removed
+
+Build covariate matrix with PC's 1 - 5 and sex from the eQTL covariates by tissue.
+```bash
+Rscript code/preprocessing/data_prep/combine_covariates_across_tissues.R \
+  --COV ${rawdir}/GTEx/GTEx_Analysis_v8_eQTL_covariates \
+  --OUT ${datadir}/data_prep
+```
+
+For each tissue, filter for genes with > 20% individuals with TPM > 0.1 and read count > 6, Log2(tpm + 2) transfrom the data, and then z-transform.
+```bash
+# All populations
+Rscript code/preprocessing/data_prep/preprocess_expr.R \
+  --COV ${datadir}/data_prep/gtex_v8_eQTL_covariates.txt \
+  --MAP ${datadir}/data_prep/gtex_v8_samples_tissues.txt \
+  --PEER ${datadir}/data_prep/PEER
+
+# African
+Rscript code/preprocessing/data_prep/preprocess_expr.R \
+  --COV ${datadir}/data_prep/gtex_v8_eQTL_covariates.txt \
+  --MAP ${datadir}/data_prep/gtex_v8_samples_tissues_AFR.txt \
+  --MIN.SAMPLE 11 \
+  --PEER ${datadir}/data_prep/PEER_AFR
+  
+# European
+Rscript code/preprocessing/data_prep/preprocess_expr.R \
+  --COV ${datadir}/data_prep/gtex_v8_eQTL_covariates.txt \
+  --MAP ${datadir}/data_prep/gtex_v8_samples_tissues_EUR.txt \
+  --PEER ${datadir}/data_prep/PEER_EUR
+```
+
+Rename eQTL files from "cervical_c-1" to "cervical_c1" for consistency
+```bash
+rename c-1 c1 ${rawdir}/GTEx/GTEx_Analysis_v8_eQTL/*c-1*
+```
+
+Generate list of top eQTLs for each gene in each tissue, extract from VCF, convert to number alternative alleles
+```bash
+bash code/preprocessing/data_prep/get_eqtl_genotypes.sh
+```
+
+Run PEER correction and compute residuals
+```bash
+## All populations
+# Compute PEER factors (use PEER dockerimage if unable to install peer natively https://hub.docker.com/r/bryancquach/peer)
+bash code/preprocessing/data_prep/calculate_PEER_factors.sh \
+  -p ${datadir}/data_prep/PEER \
+  -e ${rawdir}/GTEx/GTEx_Analysis_v8_eQTL \
+  -c ${datadir}/data_prep/gtex_v8_eQTL_covariates.txt \
+  -g ${datadir}/data_prep/gtex_2017-06-05_v8_genotypes_cis_eQTLs_012_processed.txt \
+  -t ~/scratch \
+  -d ~/code/PEER/peer-1.3.simg
+  
+# Compute residuals (does not need PEER package)
+bash code/preprocessing/data_prep/calculate_PEER_residuals.sh \
+  -p ${datadir}/data_prep/PEER \
+  -e ${rawdir}/GTEx/GTEx_Analysis_v8_eQTL \
+  -c ${datadir}/data_prep/gtex_v8_eQTL_covariates.txt \
+  -g ${datadir}/data_prep/gtex_2017-06-05_v8_genotypes_cis_eQTLs_012_processed.txt \
+  -t ~/scratch
+
+
+## African
+# Compute PEER factors (use PEER dockerimage if unable to install peer natively https://hub.docker.com/r/bryancquach/peer)
+bash code/preprocessing/data_prep/calculate_PEER_factors.sh \
+  -p ${datadir}/data_prep/PEER_AFR \
+  -e ${rawdir}/GTEx/GTEx_Analysis_v8_eQTL \
+  -c ${datadir}/data_prep/gtex_v8_eQTL_covariates.txt \
+  -g ${datadir}/data_prep/gtex_2017-06-05_v8_genotypes_cis_eQTLs_012_processed.txt \
+  -t ~/scratch \
+  -d ~/code/PEER/peer-1.3.simg
+  
+# Compute residuals (does not need PEER package)
+bash code/preprocessing/data_prep/calculate_PEER_residuals.sh \
+  -p ${datadir}/data_prep/PEER_AFR \
+  -e ${rawdir}/GTEx/GTEx_Analysis_v8_eQTL \
+  -c ${datadir}/data_prep/gtex_v8_eQTL_covariates.txt \
+  -g ${datadir}/data_prep/gtex_2017-06-05_v8_genotypes_cis_eQTLs_012_processed.txt \
+  -t ~/scratch
+
+
+## European
+# Compute PEER factors (use PEER dockerimage if unable to install peer natively https://hub.docker.com/r/bryancquach/peer)
+bash code/preprocessing/data_prep/calculate_PEER_factors.sh \
+  -p ${datadir}/data_prep/PEER_EUR \
+  -e ${rawdir}/GTEx/GTEx_Analysis_v8_eQTL \
+  -c ${datadir}/data_prep/gtex_v8_eQTL_covariates.txt \
+  -g ${datadir}/data_prep/gtex_2017-06-05_v8_genotypes_cis_eQTLs_012_processed.txt \
+  -t ~/scratch \
+  -d ~/code/PEER/peer-1.3.simg
+  
+# Compute residuals (does not need PEER package)
+bash code/preprocessing/data_prep/calculate_PEER_residuals.sh \
+  -p ${datadir}/data_prep/PEER_EUR \
+  -e ${rawdir}/GTEx/GTEx_Analysis_v8_eQTL \
+  -c ${datadir}/data_prep/gtex_v8_eQTL_covariates.txt \
+  -g ${datadir}/data_prep/gtex_2017-06-05_v8_genotypes_cis_eQTLs_012_processed.txt \
+  -t ~/scratch
+```
+
+#### Combine PEER-corrected data into a single flat file
+
+Generate files with data on what tissues are available per individual after PEER correction
+```bash
+# All populations
+bash code/preprocessing/data_prep/get_tissue_by_individual.sh \
+  -p ${datadir}/data_prep/PEER \
+  -o ${datadir}/data_prep/gtex_2017-06-05_tissue_by_ind.txt \
+  -t ${datadir}/data_prep/gtex_2017-06-05_tissues_all_normalized_samples.txt \
+  -i ${datadir}/data_prep/gtex_2017-06-05_individuals_all_normalized_samples.txt
+
+# African
+bash code/preprocessing/data_prep/get_tissue_by_individual.sh \
+  -p ${datadir}/data_prep/PEER_AFR \
+  -o ${datadir}/data_prep/gtex_AFR_tissue_by_ind.txt \
+  -t ${datadir}/data_prep/gtex_AFR_tissues_all_normalized_samples.txt \
+  -i ${datadir}/data_prep/gtex_AFR_individuals_all_normalized_samples.txt
+  
+# European
+bash code/preprocessing/data_prep/get_tissue_by_individual.sh \
+  -p ${datadir}/data_prep/PEER_EUR \
+  -o ${datadir}/data_prep/gtex_EUR_tissue_by_ind.txt \
+  -t ${datadir}/data_prep/gtex_EUR_tissues_all_normalized_samples.txt \
+  -i ${datadir}/data_prep/gtex_EUR_individuals_all_normalized_samples.txt
+
+```
+
+Combine the PEER-corrected data
+```bash
+# All populations
+# output located in ${datadir}/data_prep/gtex_2017-06-05_normalized_expression.txt.gz
+python code/preprocessing/data_prep/gather_filter_normalized_expression.py \
+  -p ${datadir}/data_prep/PEER \
+  -t ${datadir}/data_prep/gtex_2017-06-05_tissues_all_normalized_samples.txt \
+  -i ${datadir}/data_prep/gtex_2017-06-05_individuals_all_normalized_samples.txt \
+  -o ${datadir}/data_prep/gtex_2017-06-05_normalized_expression.txt
+
+gzip ${datadir}/data_prep/gtex_2017-06-05_normalized_expression.txt
+
+
+# African
+# output located in ${datadir}/data_prep/gtex_AFR_normalized_expression.txt.gz
+python code/preprocessing/data_prep/gather_filter_normalized_expression.py \
+  -p ${datadir}/data_prep/PEER_AFR \
+  -t ${datadir}/data_prep/gtex_AFR_tissues_all_normalized_samples.txt \
+  -i ${datadir}/data_prep/gtex_AFR_individuals_all_normalized_samples.txt \
+  -o ${datadir}/data_prep/gtex_AFR_normalized_expression.txt
+
+gzip ${datadir}/data_prep/gtex_AFR_normalized_expression.txt
+
+
+# European
+# output located in ${datadir}/data_prep/gtex_EUR_normalized_expression.txt.gz
+python code/preprocessing/data_prep/gather_filter_normalized_expression.py \
+  -p ${datadir}/data_prep/PEER_EUR \
+  -t ${datadir}/data_prep/gtex_EUR_tissues_all_normalized_samples.txt \
+  -i ${datadir}/data_prep/gtex_EUR_individuals_all_normalized_samples.txt \
+  -o ${datadir}/data_prep/gtex_EUR_normalized_expression.txt
+
+gzip ${datadir}/data_prep/gtex_EUR_normalized_expression.txt
+```
+
 ### Outlier calling
 
 Call outliers on all individuals
@@ -278,45 +362,44 @@ Rscript code/preprocessing/outlier_calling/identify_global_outliers.R \
   --METHOD=proportion
 ```
 
-
 Call outliers on African individuals
 
-Saved to `${datadir}/outlier_calling/test/gtexV8.AFR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt`
+Saved to `${datadir}/outlier_calling/AFR/gtexV8.AFR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt`
 ```bash
 Rscript code/preprocessing/outlier_calling/call_outliers.R \
-  --Z.SCORES=${datadir}/data_prep/gtex_2017-06-05_normalized_expression.txt.gz \
-  --OUT=${datadir}/outlier_calling/test/gtexV8.AFR.outlier.controls.v8ciseQTLs.txt \
+  --Z.SCORES=${datadir}/data_prep/gtex_AFR_normalized_expression.txt.gz \
+  --OUT=${datadir}/outlier_calling/AFR/gtexV8.AFR.outlier.controls.v8ciseQTLs.txt \
   --POP=${datadir}/data_prep/gtex_v8_wgs_individuals_AFR.txt \
   --N.PHEN=5 --ZTHRESH=3
 
 
 # Remove global outliers
 Rscript code/preprocessing/outlier_calling/identify_global_outliers.R \
-  --OUTLIERS=${datadir}/outlier_calling/test/gtexV8.AFR.outlier.controls.v8ciseQTLs.txt \
+  --OUTLIERS=${datadir}/outlier_calling/AFR/gtexV8.AFR.outlier.controls.v8ciseQTLs.txt \
   --METHOD=proportion
 ```
 
 Call outliers on European individuals
 
-Saved to `${datadir}/outlier_calling/test/gtexV8.EUR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt`
-```
+Saved to `${datadir}/outlier_calling/EUR/gtexV8.EUR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt`
+```bash
 Rscript code/preprocessing/outlier_calling/call_outliers.R \
-  --Z.SCORES=${datadir}/data_prep/gtex_2017-06-05_normalized_expression.txt.gz \
-  --OUT=${datadir}/outlier_calling/test/gtexV8.EUR.outlier.controls.v8ciseQTLs.txt \
+  --Z.SCORES=${datadir}/data_prep/gtex_EUR_normalized_expression.txt.gz \
+  --OUT=${datadir}/outlier_calling/EUR/gtexV8.EUR.outlier.controls.v8ciseQTLs.txt \
   --POP=${datadir}/data_prep/gtex_v8_wgs_individuals_EUR.txt \
   --N.PHEN=5 --ZTHRESH=3
 
 
 # Remove global outliers
 Rscript code/preprocessing/outlier_calling/identify_global_outliers.R \
-  --OUTLIERS=${datadir}/outlier_calling/test/gtexV8.EUR.outlier.controls.v8ciseQTLs.txt \
+  --OUTLIERS=${datadir}/outlier_calling/EUR/gtexV8.EUR.outlier.controls.v8ciseQTLs.txt \
   --METHOD=proportion
 
 ```
 
-GTEx v8 outliers are located in 
+GTEx v8 outliers from Watershed paper are located in 
 `/work-zfs/abattle4/bstrober/rare_variant/gtex_v8/splicing/input_data/outlier_calls/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt`
-Save to `${datadir}/outlier_calling`
+Save as `${datadir}/outlier_calling/WATERSHED.gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt`
 
 ### Prepare gene annotations from gencode
 
@@ -336,43 +419,28 @@ ${datadir}/data_prep
 Requires `bcftools` and `bedtools`
 
 #### European Individuals
-Rare variants file will be saved to `{datadir}/rare_variants/gene-EUR-rv.txt`
+Rare variants file will be saved to `{datadir}/rare_variants_pop_norm/gene-EUR-rv.txt`
 
 ```bash
 bash code/preprocessing/rare_variants/find_rare_variants.sh \
--d ${datadir}/rare_variants \
+-d ${datadir}/rare_variants_pop_norm \
 -g ${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_WholeGenomeSeq_838Indiv_Analysis_Freeze.SHAPEIT2_phased.vcf.gz \
 -r ${datadir}/data_prep/gencode.v26.GRCh38.genes_padded10kb_PCandlinc_only.bed \
 -l ${datadir}/data_prep/gtex_v8_wgs_individuals_EUR.txt \
 -p "EUR" \
--o ${datadir}/outlier_calling/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt
 
 ```
 
 #### African Individuals
-Rare variants file will be saved to `{datadir}/rare_variants/gene-AFR-rv.txt`
+Rare variants file will be saved to `{datadir}/rare_variants_pop_norm/gene-AFR-rv.txt`
 
 ```bash
 bash code/preprocessing/rare_variants/find_rare_variants.sh \
--d ${datadir}/rare_variants \
+-d ${datadir}/rare_variants_pop_norm \
 -g ${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_WholeGenomeSeq_838Indiv_Analysis_Freeze.SHAPEIT2_phased.vcf.gz \
 -r ${datadir}/data_prep/gencode.v26.GRCh38.genes_padded10kb_PCandlinc_only.bed \
 -l ${datadir}/data_prep/gtex_v8_wgs_individuals_AFR.txt \
 -p "AFR" \
--o ${datadir}/outlier_calling/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt
-
-```
-
-#### African Individuals with only African outlier calling
-
-```bash
-bash code/preprocessing/rare_variants/find_rare_variants.sh \
--d ${datadir}/rare_variants_pop_outliers \
--g ${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_WholeGenomeSeq_838Indiv_Analysis_Freeze.SHAPEIT2_phased.vcf.gz \
--r ${datadir}/data_prep/gencode.v26.GRCh38.genes_padded10kb_PCandlinc_only.bed \
--l ${datadir}/data_prep/gtex_v8_wgs_individuals_AFR.txt \
--p "AFR" \
--o ${datadir}/outlier_calling/test/gtexV8.AFR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt
 
 ```
 
