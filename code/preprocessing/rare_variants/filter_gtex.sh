@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## read in arguments
-while getopts d:g:r:l:p:o: flag
+while getopts d:g:r: flag
 do
     case "${flag}" in
         d) rvdir=${OPTARG};;
