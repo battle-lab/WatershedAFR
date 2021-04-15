@@ -29,7 +29,7 @@ covs = read.table(covs_file, header = T, sep = '\t', row.names = 1)
 ## Reorder and subset rows in covariates file to match expression matrix rows
 ## Also only keep first 3 genotype PCs and sex (if applicable)
 covs = covs[rownames(expr), ]
-remove.cols = paste0('C', 4:20) # will probably need to modify to be paste0('PC', 4:20)
+remove.cols = paste0('PC', 4:20) 
 covs = covs[, !(colnames(covs) %in% remove.cols)]
 
 ## Read in PEER factors, fix subject names, and make column order match expression rows

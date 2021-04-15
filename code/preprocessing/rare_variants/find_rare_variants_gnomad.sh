@@ -15,12 +15,13 @@
 # 
 
 ## read in arguments
-while getopts d:g:r:l:p:o: flag
+while getopts d:g:r:f:l:p:o: flag
 do
     case "${flag}" in
         d) rvdir=${OPTARG};;
         g) gtex_raw=${OPTARG};;
         r) regions=${OPTARG};;
+        f) gnomad_raw=${OPTARG};;
         l) pop_list=${OPTARG};;
         p) pop=${OPTARG};;
     esac
@@ -28,6 +29,7 @@ done
 echo $rvdir
 echo $gtex_raw
 echo $regions
+echo $gnomad_raw
 echo $pop_list;
 echo $pop
 
@@ -48,9 +50,15 @@ fi
 mkdir -p $rvdir
 
 ## Filter for rare variants within 10kb +/- window around gene body of genes that are protein coding and lincRNA coding
-# Save the resulting VCFs to `gtex.vcf.gz` and `1KG.padded10kb_PCandlinc_only.vcf.gz` in `${datadir}/rare_variants`
+# Save the resulting VCFs to `gtex.vcf.gz` and `gnomad.padded10kb_PCandlinc_only.vcf.gz` in `${datadir}/rare_variants`
 
 echo "*** Filter for rare variants within 10kb +/- window around gene body of genes that are protein coding and lincRNA coding"
+
+# merge regions that overlap and/or book-end for faster filtering
+regions_merged_name="$(basename $regions .bed)_merged.bed"
+regions_merged=${rvdir}/${regions_merged_name}
+bedtools merge -i $regions > $regions_merged
+
 
 # GTEx variants (keep SNPs only)
 gtex=${rvdir}/gtex.vcf.gz
@@ -61,7 +69,7 @@ else
         bash code/preprocessing/rare_variants/filter_gtex.sh
         -d $rvdir \
         -g $gtex_raw \
-        -r $regions
+        -r $regions_merged
 fi
 
 if [ -f "$gtex.tbi" ]; then
@@ -72,22 +80,25 @@ else
 fi
 
 
-# 1KG variants
-_1kg=${rvdir}/1KG.padded10kb_PCandlinc_only.vcf.gz
+# gnomad variants
+gnomad=${rvdir}/gnomad.padded10kb_PCandlinc_only.vcf.gz
 
-if [ -f "$_1kg" ]; then
-        echo "**** Filtered 1KG VCF already exists"
+if [ -f "$gnomad" ]; then
+        echo "**** Filtered gnomAD VCF already exists"
 else
-        bash code/preprocessing/rare_variants/filter_1kg.sh \
+        bash code/preprocessing/rare_variants/filter_gnomad.sh \
+        -d $rvdir \
+        -f $gnomad_raw \
+        -r $regions_merged
 
 fi
 
 
-if [ -f "$_1kg.tbi" ]; then
-        echo "**** Filtered 1KG VCF already indexed"
+if [ -f "$gnomad.tbi" ]; then
+        echo "**** Filtered gnomAD VCF already indexed"
 else
-        echo "**** Indexing 1KG VCF"
-        bcftools index --tbi $_1kg
+        echo "**** Indexing gnomAD VCF"
+        bcftools index --tbi $gnomad
 fi
 
 echo "*** Done"
@@ -95,13 +106,17 @@ echo "*** Done"
 
 ## Subset GTEx VCF by population
 # also recomputes allele frequencies within that population
-# save the resulting VCFs as `gtex_${pop}.vcf.gz` in `{datadir}/rare_variants`
+# save the resulting VCFs as `gtex_${pop}.vcf.gz` in `$rvdir`
 echo "*** Subset GTEx VCF by population"
 
 gtex_pop=${rvdir}/gtex_${pop}.vcf.gz
 
-# bcftools +fill-tags recomputes AF after we remove samples
-bcftools view --samples-file $pop_list $gtex | bcftools +fill-tags --output $gtex_pop --output-type z -- -t AF
+if [ -f "$gtex_pop" ]; then
+        echo "**** $gtex_pop already exists"
+else
+        # bcftools +fill-tags recomputes AF after we remove samples
+        bcftools view --samples-file $pop_list $gtex | bcftools +fill-tags --output $gtex_pop --output-type z -- -t AF
+fi 
 
 echo "*** Done"
 
@@ -110,42 +125,59 @@ echo "*** Done"
 echo "*** Filter GTEx VCF for rare variants (MAF < 0.01)"
 
 gtex_pop_rare=${rvdir}/gtex_${pop}_rare.vcf.gz
-
-bcftools view --include 'AF<0.01 & AF>0' --output-file $gtex_pop_rare --output-type z $gtex_pop
+if [ -f "$gtex_pop_rare" ]; then
+        echo "**** $gtex_pop_rare already exists"
+else
+        bcftools view --include 'AF<0.01 & AF>0' --output-file $gtex_pop_rare --output-type z $gtex_pop
+fi
 
 echo "*** Done"
 
-## Confirm rarity of GTEx variants in 1KG
-# Quality control to check that rare variants in GTEx are also rare in 1KG population.
+## Confirm rarity of GTEx variants in gnomAD
+# Quality control to check that rare variants in GTEx are also rare in gnomAD population.
 # Save the resulting VCFs to `gtex_${pop}_rare.QC.vcf.gz` in ${datadir}/rare_variants
-echo "*** Confirm rarity of GTEx variants in 1KG"
+echo "*** Confirm rarity of GTEx variants in gnomAD"
 
 gtex_rare_bed=${rvdir}/gtex_${pop}_rare.bed
-_1kg_common=${rvdir}/1KG.${pop}_common.vcf.gz
-_1kg_common_bed=${rvdir}/1KG.${pop}_common.bed
+gnomad_common=${rvdir}/gnomad.${pop}_common.vcf.gz
+gnomad_common_bed=${rvdir}/gnomad.${pop}_common.bed
 gtex_pop_rareQC=${rvdir}/gtex_${pop}_rare.QC.vcf.gz
 
-# Filter 1KG for variants in GTEx that have population specific AF >= 0.01
-bcftools query -f '%CHROM\t%POS0\t%END\t%ID\n' $gtex_pop_rare > $gtex_rare_bed
-
-if [ $pop == "AFR" ]
-then
-  bcftools view --regions-file $gtex_rare_bed \
-  --include 'INFO/AFR_AF >= 0.01' --output-file $_1kg_common --output-type z $_1kg
-elif [ $pop == "EUR" ]
-then
-  bcftools view --regions-file $gtex_rare_bed \
-  --include 'INFO/EUR_AF >= 0.01' --output-file $_1kg_common --output-type z $_1kg
+# Filter gnomAD for variants in GTEx that have AF >= 0.01
+if [ -f "$gtex_rare_bed" ]; then
+        echo "**** $gtex_rare_bed already exists"
 else
-  echo "Population is neither AFR nor EUR. Exiting"
-  exit 1
+        bcftools query -f '%CHROM\t%POS0\t%END\t%ID\n' $gtex_pop_rare > $gtex_rare_bed
 fi
 
-bcftools query -f '%CHROM\t%POS0\t%END\t%ID\n' $_1kg_common > $_1kg_common_bed
+if [ -f "$gnomad_common" ]; then
+        echo "**** $gnomad_common already exists"
+else
+        if [ $pop == "AFR" ]; then
+                bcftools view --regions-file $gtex_rare_bed \
+                --include 'INFO/AF_afr >= 0.01' --output-file $gnomad_common --output-type z $gnomad
+        elif [ $pop == "EUR" ]; then
+                bcftools view --regions-file $gtex_rare_bed \
+                --include 'INFO/AF_nfe >= 0.01' --output-file $gnomad_common --output-type z $gnomad
+        else
+                echo "Population is neither AFR nor EUR. Exiting"
+                exit 1
+        fi
+fi
+
+if [ -f "$gnomad_common_bed" ]; then
+        echo "**** $gnomad_common_bed already exists"
+else
+        bcftools query -f '%CHROM\t%POS0\t%END\t%ID\n' $gnomad_common > $gnomad_common_bed
+fi
 
 # Remove common variants from GTEx
-bedtools intersect -v -a $gtex_pop_rare -b $_1kg_common_bed -header | \
-bcftools convert --output $gtex_pop_rareQC --output-type z
+if [ -f "$gtex_pop_rareQC" ]; then
+        echo "**** $gtex_pop_rareQC already exists"
+else
+        bedtools intersect -v -a $gtex_pop_rare -b $gnomad_common_bed -header | \
+        bcftools convert --output $gtex_pop_rareQC --output-type z
+fi
 
 echo "*** Done"
 
@@ -163,6 +195,7 @@ bcftools query -f'[%CHROM\t%POS0\t%END\t%REF\t%ALT\t%SAMPLE\n]' --include 'GT="a
 
 
 # Use bedtools to intersect list of rare variants with protein and lincRNA coding genes padded by 10kb around gene body
+# This maps the rare variants to the gene. Two genes can share the same rare variant.
 echo "**** Subset rare variants that lie within 10kb around protein coding and lincRNA coding genes"
 rv_sites_raw=${rvdir}/gene-${pop}-rv.raw.txt
 bedtools intersect -wa -wb -a $indiv_at_rv -b $regions > $rv_sites_raw

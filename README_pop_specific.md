@@ -1,7 +1,6 @@
 # Population Specific Finding Rare Variants
 
 
-
 ```bash
 # Defining root, data, and raw data directories
 rootdir=/scratch/groups/abattle4/victor/WatershedAFR
@@ -10,9 +9,7 @@ rawdir=${rootdir}/raw_data
 ```
 
 
-
 ### Expression data correction and normalization
-
 
 #### Generate tpm and read count matrices from GTEx V8
 
@@ -37,20 +34,20 @@ Rscript code/preprocessing/data_prep/population_sample_tissue_map.R \
   --OUT ${datadir}/data_prep/gtex_v8_samples_tissues_EUR.txt
 
 # split TMP
+GTEX_tpm=${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_tpm.gct.gz
+
 OUT_AFR=${datadir}/data_prep/PEER_AFR
-OUT_EUR=${datadir}/data_prep/PEER_EUR
-GTEX=${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_tpm.gct.gz
 SAMPLE_AFR=${datadir}/data_prep/gtex_v8_samples_tissues_AFR.txt
+python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX_tpm --out $OUT_AFR --sample $SAMPLE_AFR --end .tpm.txt
+
+OUT_EUR=${datadir}/data_prep/PEER_EUR
 SAMPLE_EUR=${datadir}/data_prep/gtex_v8_samples_tissues_EUR.txt
-END='.tpm.txt'
-python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX --out $OUT_AFR --sample $SAMPLE_AFR --end $END
-python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX --out $OUT_EUR --sample $SAMPLE_EUR --end $END
+python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX_tpm --out $OUT_EUR --sample $SAMPLE_EUR --end .tpm.txt
 
 # split read counts
-GTEX=${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_reads.gct.gz
-END='.reads.txt'
-python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX --out $OUT_AFR --sample $SAMPLE_AFR --end $END
-python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX --out $OUT_EUR --sample $SAMPLE_EUR --end $END
+GTEX_reads=${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_reads.gct.gz
+python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX_reads --out $OUT_AFR --sample $SAMPLE_AFR --end .reads.txt
+python code/preprocessing/data_prep/split_expr_by_tissues.py --gtex $GTEX_reads --out $OUT_EUR --sample $SAMPLE_EUR --end .reads.txt
 
 ```
 

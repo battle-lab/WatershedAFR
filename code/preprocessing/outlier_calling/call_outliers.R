@@ -72,7 +72,7 @@ setkey(data, Gene)
 individs = colnames(data)[-c(1,2)]
 
 ## Calculate meta-analysis test statistics
-results = ddply(data, .(Gene), meta.analysis, .parallel = TRUE)
+results = ddply(data, .(Gene), meta.analysis, .parallel = F)
 
 ## Remove samples with < n tissues
 results = results[results$n.tissues >= nphen,]
