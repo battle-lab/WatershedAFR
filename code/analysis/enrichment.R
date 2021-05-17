@@ -1,13 +1,14 @@
 library(tidyr)
 library(dplyr)
 library(ggplot2)
-# library(data.table)
+library(data.table)
 
 
 summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_pairs_file, 
                                        thresholds=seq(1,5,0.5), outlier_bin_width = NULL, 
                                        outlier_bin_percentile=NULL,
-                                       output_dir = "./", output_prefix=NULL, col.names = NULL){
+                                       output_dir = "./", output_prefix=NULL, col.names = NULL,
+                                       save_thresh_files = TRUE){
   names(thresholds) <- thresholds
   
   if (is.null(output_prefix )){
@@ -18,11 +19,14 @@ summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_
   }
   
   
-  pop_list <- as.character(read.table(pop_subset_file, header = FALSE)$V1)
+  pop_list <- as.character(fread(pop_subset_file, header = FALSE)$V1)
   
-  rare_var_pairs <- read.table(rare_var_pairs_file, header=TRUE, check.names = FALSE) 
   if (! is.null(col.names)){
+    rare_var_pairs <- fread(rare_var_pairs_file, header=FALSE) 
     colnames(rare_var_pairs) <- col.names
+  }
+  else {
+    rare_var_pairs <- fread(rare_var_pairs_file, header=TRUE) 
   }
   
   rare_var_pairs <- rare_var_pairs %>%
@@ -31,7 +35,7 @@ summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_
   rare_var_pairs <- rare_var_pairs[!duplicated(rare_var_pairs$easykey),] 
   
   # create a subtable that will be more useful ## DO NOT CHANGE ITS ORDER AFTER THIS STEP
-  pairs.df.pop <- read.table(z_scores_file, header=TRUE, check.names = FALSE) %>%
+  pairs.df.pop <- fread(z_scores_file, header=TRUE) %>%
     mutate(easykey = paste0(Gene,Ind)) %>% # create an id column for gene-indiv pairs
     select(easykey,Gene,Ind,MedZ) %>%
     filter(Ind %in% pop_list) %>% #limit pairs.df.pop to individuals within the population
@@ -72,7 +76,9 @@ summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_
       filter(GeneKeep)
     # cbind(pairs.df.pop, all.pairs.thresh[[t]]) %>% 
     # filter(GeneKeep)
-    write.csv(gktmp, file = paste0(output_dir,"/",output_prefix,"_",t,".csv"))
+    if (save_thresh_files) {
+      write.table(gktmp, file = paste0(output_dir,"/",output_prefix,"_",t,".tsv"), quote = F, sep = '\t', row.names = FALSE, col.names = TRUE)
+    }
     
     gc()
     gktmp <- gktmp %>%
@@ -155,7 +161,8 @@ enrichmentTipTail <-
     output_dir = "./", 
     output_prefix = NULL, 
     title.mod.pop="Population", 
-    col.names = NULL){
+    col.names = NULL,
+    save_thresh_files = TRUE){
     
     counts.summary <- summarizeRareInlierOutlier(
       pop_subset_file = pop_subset_file, 
@@ -166,7 +173,8 @@ enrichmentTipTail <-
       outlier_bin_percentile = outlier_bin_percentile,
       output_dir = output_dir,
       output_prefix = output_prefix,
-      col.names = col.names)
+      col.names = col.names,
+      save_thresh_files = save_thresh_files)
     
     enrichment.df <- computeEnrichment(counts.summary)
     
