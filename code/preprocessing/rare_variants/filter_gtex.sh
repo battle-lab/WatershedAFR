@@ -16,7 +16,9 @@ echo "**** Filtering GTEx variants"
 
 gtex=${rvdir}/gtex.vcf.gz
 
-bcftools view --regions-file $regions --types snps $gtex_raw | bcftools sort | bcftools norm --rm-dup snps \
-        --output $gtex --output-type z
+bcftools view --regions-file $regions --types snps -Oz -o $gtex $gtex_raw
+bcftools index --tbi $gtex
+
+
 
 

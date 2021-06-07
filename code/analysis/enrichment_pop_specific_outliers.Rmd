@@ -16,6 +16,7 @@ source('./enrichment.R')
 
 rootdir = '/scratch/groups/abattle4/victor/WatershedAFR'
 datadir = paste0(rootdir,'/data')
+output_dir = paste0(datadir,'/enrichment')
 
 ```
 
@@ -23,6 +24,7 @@ datadir = paste0(rootdir,'/data')
 
 # files needed for African variants
 afr_z_scores_file = paste0(datadir,'/outlier_calling/AFR/gtexV8.AFR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt')
+# afr_z_scores_file = paste0(datadir,'/outlier_calling/AFR/gtexV8.AFR.outlier.controls.v8ciseQTLs.txt')
 afr_rare_var_pairs_file = paste0(datadir,'/rare_variants_pop_norm/gene-AFR-rv.txt')
 afr_pop_list_file = paste0(datadir,'/data_prep/gtex_v8_wgs_individuals_AFR.txt')
 
@@ -35,6 +37,7 @@ afr_outliers = enrichmentTipTail(pop_subset_file = afr_pop_list_file, z_scores_f
 saveRDS(afr_outliers, file=paste0(output_dir,'/african_data_only.rds'))
 
 afr_outliers
+
 
 ```
 
@@ -57,6 +60,154 @@ saveRDS(eur_outliers, file=paste0(output_dir,'/european_data_only.rds'))
 eur_outliers
 ```
 
+```{r enrichment_european_gnomad_rare_variants, cache=TRUE}
+
+# files needed for European variants
+eur_z_scores_file = paste0(datadir,'/outlier_calling/EUR/gtexV8.EUR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt')
+eur_rare_var_pairs_file = paste0(datadir,'/rare_variants_gnomad/gene-EUR-rv.txt')
+eur_pop_list_file = paste0(datadir,'/data_prep/gtex_v8_wgs_individuals_EUR.txt')
+
+eur_output_prefix = 'european_data_only_gnomad'
+output_dir = paste0(datadir,'/enrichment')
+
+
+eur_outliers = enrichmentTipTail(pop_subset_file = eur_pop_list_file, z_scores_file = eur_z_scores_file, rare_var_pairs_file = eur_rare_var_pairs_file, output_dir = output_dir, title.mod.pop = "European data only", output_prefix = eur_output_prefix)
+
+saveRDS(eur_outliers, file=paste0(output_dir,'/european_data_only_gnomad.rds'))
+
+eur_outliers
+```
+
+```{r eur_from_watershed_gnomad, cache=TRUE}
+
+# files needed for European variants
+eur_z_scores_file = paste0(datadir,'/outlier_calling/WATERSHED_eur.txt')
+eur_rare_var_pairs_file = paste0(datadir,'/rare_variants_gnomad/gene-EUR-rv.txt')
+eur_pop_list_file = paste0(datadir,'/data_prep/gtex_v8_wgs_individuals_EUR.txt')
+
+eur_output_prefix = 'european_from_watershed_gnomad'
+output_dir = paste0(datadir,'/enrichment')
+
+
+eur_outliers = enrichmentTipTail(pop_subset_file = eur_pop_list_file, z_scores_file = eur_z_scores_file, rare_var_pairs_file = eur_rare_var_pairs_file, output_dir = output_dir, title.mod.pop = "European subset of outlier calling", output_prefix = eur_output_prefix)
+
+saveRDS(eur_outliers, file=paste0(output_dir,'/european_from_watershed_gnomad.rds'))
+
+eur_outliers
+```
+
+
+```{r eur_with_extreme_outliers, cache=TRUE}
+# files needed for European outliers
+eur_z_scores_file = paste0(datadir,'/outlier_calling/EUR/gtexV8.EUR.outlier.controls.v8ciseQTLs.txt')
+eur_rare_var_pairs_file = paste0(datadir,'/rare_variants_pop_norm/gene-EUR-rv.txt')
+eur_pop_list_file = paste0(datadir,'/data_prep/gtex_v8_wgs_individuals_EUR.txt')
+
+eur_output_prefix = 'european_data_only_with_global_outliers'
+output_dir = paste0(datadir,'/enrichment')
+
+
+eur_outliers = enrichmentTipTail(pop_subset_file = eur_pop_list_file, z_scores_file = eur_z_scores_file, rare_var_pairs_file = eur_rare_var_pairs_file, output_dir = output_dir, title.mod.pop = "European data only", output_prefix = eur_output_prefix)
+
+saveRDS(eur_outliers, file=paste0(output_dir,'/european_data_only_before_global_outliers_removed.rds'))
+
+eur_outliers
+
+
+```
+
+
+```{r eur_with_thresh_2, cache=TRUE}
+# files needed for European outliers
+eur_z_scores_file = paste0(datadir,'/outlier_calling/EUR/outlier_thresh_2.txt')
+eur_rare_var_pairs_file = paste0(datadir,'/rare_variants_pop_norm/gene-EUR-rv.txt')
+eur_pop_list_file = paste0(datadir,'/data_prep/gtex_v8_wgs_individuals_EUR.txt')
+
+eur_output_prefix = 'european_data_only_thresh_2'
+output_dir = paste0(datadir,'/enrichment')
+
+
+eur_outliers = enrichmentTipTail(pop_subset_file = eur_pop_list_file, z_scores_file = eur_z_scores_file, rare_var_pairs_file = eur_rare_var_pairs_file, output_dir = output_dir, title.mod.pop = "European data only", output_prefix = eur_output_prefix)
+
+saveRDS(eur_outliers, file=paste0(output_dir,'/european_data_thresh_2.rds'))
+
+eur_outliers
+
+```
+
+```{r afr_from_watershed, cache=TRUE}
+# files needed for African variants
+afr_z_scores_file = paste0(datadir,'/outlier_calling/WATERSHED_afr.txt')
+afr_rare_var_pairs_file = paste0(datadir,'/rare_variants_pop_norm/gene-AFR-rv.txt')
+afr_pop_list_file = paste0(datadir,'/data_prep/gtex_v8_wgs_individuals_AFR.txt')
+
+afr_output_prefix = 'african_from_watershed'
+output_dir = paste0(datadir,'/enrichment')
+
+
+afr_outliers = enrichmentTipTail(pop_subset_file = afr_pop_list_file, z_scores_file = afr_z_scores_file, rare_var_pairs_file = afr_rare_var_pairs_file, output_dir = output_dir, title.mod.pop = "African subset of outlier calling", output_prefix = afr_output_prefix)
+
+saveRDS(afr_outliers, file=paste0(output_dir,'/african_from_watershed.rds'))
+
+afr_outliers
+
+```
+
+```{r afr_from_watershed_corrected, cache=TRUE}
+# files needed for African variants
+afr_z_scores_file = paste0(datadir,'/outlier_calling/WATERSHED_afr.corrected_outliers.txt')
+afr_rare_var_pairs_file = paste0(datadir,'/rare_variants_pop_norm/gene-AFR-rv.txt')
+afr_pop_list_file = paste0(datadir,'/data_prep/gtex_v8_wgs_individuals_AFR.txt')
+
+afr_output_prefix = 'african_from_watershed_corrected'
+output_dir = paste0(datadir,'/enrichment')
+
+
+afr_outliers = enrichmentTipTail(pop_subset_file = afr_pop_list_file, z_scores_file = afr_z_scores_file, rare_var_pairs_file = afr_rare_var_pairs_file, output_dir = output_dir, title.mod.pop = "African subset of outlier calling", output_prefix = afr_output_prefix)
+
+saveRDS(afr_outliers, file=paste0(output_dir,'/african_from_watershed_corrected.rds'))
+
+afr_outliers
+
+```
+
+
+```{r eur_from_watershed, cache=TRUE}
+
+# files needed for European variants
+eur_z_scores_file = paste0(datadir,'/outlier_calling/WATERSHED_eur.txt')
+eur_rare_var_pairs_file = paste0(datadir,'/rare_variants_pop_norm/gene-EUR-rv.txt')
+eur_pop_list_file = paste0(datadir,'/data_prep/gtex_v8_wgs_individuals_EUR.txt')
+
+eur_output_prefix = 'european_from_watershed'
+output_dir = paste0(datadir,'/enrichment')
+
+
+eur_outliers = enrichmentTipTail(pop_subset_file = eur_pop_list_file, z_scores_file = eur_z_scores_file, rare_var_pairs_file = eur_rare_var_pairs_file, output_dir = output_dir, title.mod.pop = "European subset of outlier calling", output_prefix = eur_output_prefix)
+
+saveRDS(eur_outliers, file=paste0(output_dir,'/european_from_watershed.rds'))
+
+eur_outliers
+```
+
+```{r eur_from_watershed_corrected, cache=TRUE}
+
+# files needed for European variants
+eur_z_scores_file = paste0(datadir,'/outlier_calling/WATERSHED_eur.corrected_outliers.txt')
+eur_rare_var_pairs_file = paste0(datadir,'/rare_variants_pop_norm/gene-EUR-rv.txt')
+eur_pop_list_file = paste0(datadir,'/data_prep/gtex_v8_wgs_individuals_EUR.txt')
+
+eur_output_prefix = 'european_from_watershed_corrected'
+output_dir = paste0(datadir,'/enrichment')
+
+
+eur_outliers = enrichmentTipTail(pop_subset_file = eur_pop_list_file, z_scores_file = eur_z_scores_file, rare_var_pairs_file = eur_rare_var_pairs_file, output_dir = output_dir, title.mod.pop = "European subset of outlier calling", output_prefix = eur_output_prefix)
+
+saveRDS(eur_outliers, file=paste0(output_dir,'/european_from_watershed_corrected.rds'))
+
+eur_outliers
+```
+
 ```{r pop_compare, cache=TRUE}
 
 afr_outliers = readRDS(paste0(output_dir,'/african_data_only.rds'))
@@ -72,4 +223,205 @@ ggplot(enrich, aes(x = sortcol, y = enrichment, color=source)) +
   geom_point() + 
   geom_errorbar(aes(ymin=lower_CI, ymax=upper_CI)) +
   labs(title="Enrichment of rare variants in outlier genes" , x = "Z-score threshold")
+```
+
+```{r afr_wshed_compare, cache=TRUE}
+# compares enrichment from African subset of watershed outliers and African outliers computed only from African data
+
+wshed_outliers = readRDS(paste0(output_dir,'/african_from_watershed_corrected.rds'))
+afr_outliers = readRDS(paste0(output_dir,'/african_data_only.rds'))
+
+enrich_wshed = wshed_outliers$enrichment %>% mutate(pipeline = "Watershed")
+enrich_afr = afr_outliers$enrichment %>% mutate(pipeline = "African Only")
+
+enrich = bind_rows(enrich_wshed, enrich_afr)
+
+ggplot(enrich, aes(x = sortcol, y = enrichment, color=pipeline)) +
+  geom_line() + 
+  geom_point() + 
+  geom_errorbar(aes(ymin=lower_CI, ymax=upper_CI)) +
+  ylim(0,2) +
+  labs(title="Enrichment of rare variants in outlier genes" , x = "Z-score threshold")
+
+
+```
+
+```{r eur_wshed_compare, cache=TRUE}
+# compares enrichment from European subset of watershed outliers and European outliers computed only from European data
+
+wshed_outliers = readRDS(paste0(output_dir,'/european_from_watershed_corrected.rds'))
+eur_outliers = readRDS(paste0(output_dir,'/european_data_only.rds'))
+
+enrich_wshed = wshed_outliers$enrichment %>% mutate(pipeline = "Watershed")
+enrich_eur = eur_outliers$enrichment %>% mutate(pipeline = "European Only")
+
+enrich = bind_rows(enrich_wshed, enrich_eur)
+
+ggplot(enrich, aes(x = sortcol, y = enrichment, color=pipeline)) +
+  geom_line() + 
+  geom_point() + 
+  geom_errorbar(aes(ymin=lower_CI, ymax=upper_CI)) +
+  labs(title="Enrichment of rare variants in outlier genes" , x = "Z-score threshold")
+```
+
+```{r eur_wshed_compare_gnomad, cache=TRUE}
+# compares enrichment from European subset of watershed outliers and European outliers computed only from European data with gnomad filtered rv
+
+wshed_outliers = readRDS(paste0(output_dir,'/watershed.rds'))
+eur_outliers = readRDS(paste0(output_dir,'/european_data_only_gnomad.rds'))
+
+enrich_wshed = wshed_outliers$enrichment %>% mutate(pipeline = "Watershed")
+enrich_eur = eur_outliers$enrichment %>% mutate(pipeline = "Reproduced")
+
+enrich = bind_rows(enrich_wshed, enrich_eur)
+
+ggplot(enrich, aes(x = sortcol, y = enrichment, color=pipeline)) +
+  geom_line() + 
+  geom_point() + 
+  geom_errorbar(aes(ymin=lower_CI, ymax=upper_CI)) +
+  labs(title="Enrichment of rare variants in outlier genes" , x = "Z-score threshold")
+```
+
+```{r eur_wshed_rv_compare, cache=TRUE}
+# compare european rare variants 
+
+wshed_rv_file = '/work-zfs/abattle4/bstrober/rare_variant/gtex_v8/splicing/input_data/variant_calls/all_rare_variants_SNPs_10kb_genebody.txt'
+eur_rv_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/rare_variants_gnomad/gene-EUR-rv.txt'
+
+wshed_rv = fread(wshed_rv_file)
+colnames(wshed_rv) = c('Ind', 'Gene', 'Chrom', 'Start', 'End')
+
+eur_rv = fread(eur_rv_file)
+
+
+# number of rare variants per individual (restrict to same genes)
+# combined histogram
+
+rv_eur = eur_rv %>% mutate(pipeline = "European")
+rv_wshed = wshed_rv %>% mutate(pipeline = "Watershed")
+
+gene_common = intersect(rv_eur$Gene, rv_wshed$Gene) 
+
+rv_eur_common = rv_eur %>% filter(Gene %in% gene_common)
+rv_wshed_common = rv_wshed %>% filter(Gene %in% gene_common)
+
+rv_eur_common.indiv.count = rv_eur_common %>% count(Ind) %>% mutate(pipeline = "European")
+rv_wshed_common.indiv.count = rv_wshed_common %>% count(Ind) %>% mutate(pipeline = "Watershed")
+
+rv_common.indiv.count = bind_rows(rv_eur_common.indiv.count, rv_wshed_common.indiv.count) %>% arrange(desc(n))
+
+ggplot(rv_common.indiv.count, aes(x=n, fill=pipeline)) + geom_histogram(alpha=0.5, bins = 300) +
+  labs(title=paste0("Number of rare variants per individual (", length(gene_common), " common genes)"), x = "# of rare variants", y = "# of individuals")
+
+```
+
+```{r eur_gnomad, cahce=TRUE}
+# files needed for European variants
+eur_z_scores_file = paste0(datadir,'/outlier_calling/WATERSHED.gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt')
+eur_rare_var_pairs_file = paste0(datadir,'/rare_variants_gnomad/gene-EUR-rv.txt')
+eur_pop_list_file = paste0(datadir,'/data_prep/gtex_v8_wgs_individuals_EUR.txt')
+
+eur_output_prefix = 'reproduce_watershed'
+output_dir = paste0(datadir,'/enrichment')
+
+
+eur_outliers = enrichmentTipTail(pop_subset_file = eur_pop_list_file, z_scores_file = eur_z_scores_file, rare_var_pairs_file = eur_rare_var_pairs_file, output_dir = output_dir, title.mod.pop = "European subset of outlier calling", output_prefix = eur_output_prefix)
+
+saveRDS(eur_outliers, file=paste0(output_dir,'/reproduce_watershed.rds'))
+
+eur_outliers
+
+```
+
+```{r eur_wshed_compare, cache=TRUE}
+# compares enrichment from European subset of watershed outliers and reproduced outliers
+
+wshed_outliers = readRDS(paste0(output_dir,'/watershed.rds'))
+re_outliers = readRDS(paste0(output_dir,'/reproduce_watershed.rds'))
+
+enrich_wshed = wshed_outliers$enrichment %>% mutate(pipeline = "Watershed")
+enrich_re = re_outliers$enrichment %>% mutate(pipeline = "Reproduced")
+
+enrich = bind_rows(enrich_wshed, enrich_re)
+
+ggplot(enrich, aes(x = sortcol, y = enrichment, color=pipeline)) +
+  geom_line() + 
+  geom_point() + 
+  geom_errorbar(aes(ymin=lower_CI, ymax=upper_CI)) +
+  labs(title="Enrichment of rare variants in outlier genes" , x = "Z-score threshold")
+```
+
+```{r eur_gnomad, cahce=TRUE}
+# files needed for European variants
+eur_z_scores_file = paste0(datadir,'/outlier_calling/WATERSHED_eur.corrected_outliers.txt')
+eur_rare_var_pairs_file = paste0(datadir,'/rare_variants_gnomad/gene-EUR-rv.txt')
+eur_pop_list_file = paste0(datadir,'/data_prep/gtex_v8_wgs_individuals_EUR.txt')
+
+eur_output_prefix = 'reproduce_watershed'
+output_dir = paste0(datadir,'/enrichment')
+
+
+eur_outliers = enrichmentTipTail(pop_subset_file = eur_pop_list_file, z_scores_file = eur_z_scores_file, rare_var_pairs_file = eur_rare_var_pairs_file, output_dir = output_dir, title.mod.pop = "European subset of outlier calling", output_prefix = eur_output_prefix)
+
+saveRDS(eur_outliers, file=paste0(output_dir,'/reproduce_watershed.WATERSHED_EUR.corrected_outliers.rds'))
+
+eur_outliers
+
+```
+
+```{r, cache=TRUE}
+# compares enrichment from European subset of watershed outliers and reproduced outliers
+
+wshed_outliers = readRDS(paste0(output_dir,'/european_from_watershed_corrected.rds'))
+re_outliers = readRDS(paste0(output_dir,'/reproduce_watershed.WATERSHED_EUR.corrected_outliers.rds'))
+
+enrich_wshed = wshed_outliers$enrichment %>% mutate(pipeline = "Watershed")
+enrich_re = re_outliers$enrichment %>% mutate(pipeline = "Reproduced")
+
+enrich = bind_rows(enrich_wshed, enrich_re)
+
+ggplot(enrich, aes(x = sortcol, y = enrichment, color=pipeline)) +
+  geom_line() + 
+  geom_point() + 
+  geom_errorbar(aes(ymin=lower_CI, ymax=upper_CI)) +
+  labs(title="Enrichment of rare variants in outlier genes" , x = "Z-score threshold")
+```
+
+
+```{r watershed_paper_enrichment, cache=TRUE}
+# files needed for European variants
+ws_z_scores_file = '/work-zfs/abattle4/bstrober/rare_variant/gtex_v8/splicing/input_data/outlier_calls/gtexV8.outlier.controls.v8ciseQTLs.globalOutliers.removed.medz.txt'
+ws_rare_var_pairs_file = '/work-zfs/abattle4/bstrober/rare_variant/gtex_v8/splicing/input_data/variant_calls/all_rare_variants_SNPs_10kb_genebody.txt'
+ws_pop_list_file = paste0(datadir,'/data_prep/gtex_v8_wgs_individuals_EUR.txt')
+
+ws_output_prefix = 'reproduce_watershed'
+output_dir = paste0(datadir,'/enrichment')
+
+
+ws_outliers = enrichmentTipTail(pop_subset_file = ws_pop_list_file, z_scores_file = ws_z_scores_file, rare_var_pairs_file = ws_rare_var_pairs_file, output_dir = output_dir, title.mod.pop = "European subset of outlier calling", 
+                                output_prefix = ws_output_prefix, col.names = c("Ind", "Gene", "Chrom", "Start", "End"))
+
+saveRDS(ws_outliers, file=paste0(output_dir,'/watershed.rds'))
+
+ws_outliers
+
+```
+
+
+```{r european_outliers_only, cache=TRUE}
+# european data only for outliers
+eur_z_scores_file = paste0(datadir,'/outlier_calling/EUR/gtexV8.EUR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt')
+eur_rare_var_pairs_file = paste0(datadir,'/rare_variants_gnomad/gene-EUR-rv.txt')
+eur_pop_list_file = paste0(datadir,'/data_prep/gtex_v8_wgs_individuals_EUR.txt')
+
+eur_output_prefix = 'Outliers within European only'
+output_dir = paste0(datadir,'/enrichment')
+
+
+eur_outliers = enrichmentTipTail(pop_subset_file = eur_pop_list_file, z_scores_file = eur_z_scores_file, rare_var_pairs_file = eur_rare_var_pairs_file, output_dir = output_dir, title.mod.pop = "Outliers within European only", output_prefix = eur_output_prefix)
+
+saveRDS(eur_outliers, file=paste0(output_dir,'/european_outliers_only.rds'))
+
+eur_outliers
+
 ```

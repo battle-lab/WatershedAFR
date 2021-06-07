@@ -16,9 +16,8 @@ echo "**** Filtering gnomAD variants"
 
 gnomad=${rvdir}/gnomad.padded10kb_PCandlinc_only.vcf.gz
 
-# bcftools view --regions-file $regions --types snps --output-file $gnomad --output-type z $gnomad_raw
 
-bcftools view --regions-file $regions --types snps --output-file $gnomad --output-type z $gnomad_raw 
+bcftools view --regions-file $regions --types snps -Oz -o $gnomad $gnomad_raw 
+bcftools index --tbi $gnomad
 
-# bcftools sort
-# bcftools norm --rm-dup snps --output $gnomad --output-type z
+

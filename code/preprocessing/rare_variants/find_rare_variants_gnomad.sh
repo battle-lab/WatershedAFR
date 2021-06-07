@@ -46,9 +46,15 @@ then
     exit
 fi
 
+if ! command -v parallel &> /dev/null
+then
+    echo "GNU parallel could not be found"
+    exit
+fi
+
 # Make output directory
 mkdir -p $rvdir
-
+#
 ## Filter for rare variants within 10kb +/- window around gene body of genes that are protein coding and lincRNA coding
 # Save the resulting VCFs to `gtex.vcf.gz` and `gnomad.padded10kb_PCandlinc_only.vcf.gz` in `${datadir}/rare_variants`
 
@@ -66,10 +72,8 @@ gtex=${rvdir}/gtex.vcf.gz
 if [ -f "$gtex" ]; then
         echo "**** Filtered GTEx VCF already exists"
 else
-        bash code/preprocessing/rare_variants/filter_gtex.sh
-        -d $rvdir \
-        -g $gtex_raw \
-        -r $regions_merged
+        bcftools view --regions-file $regions_merged --types snps -Oz -o $gtex $gtex_raw
+        
 fi
 
 if [ -f "$gtex.tbi" ]; then
@@ -86,10 +90,7 @@ gnomad=${rvdir}/gnomad.padded10kb_PCandlinc_only.vcf.gz
 if [ -f "$gnomad" ]; then
         echo "**** Filtered gnomAD VCF already exists"
 else
-        bash code/preprocessing/rare_variants/filter_gnomad.sh \
-        -d $rvdir \
-        -f $gnomad_raw \
-        -r $regions_merged
+        bcftools view --regions-file $regions_merged --types snps -Oz -o $gnomad $gnomad_raw 
 
 fi
 
@@ -115,7 +116,7 @@ if [ -f "$gtex_pop" ]; then
         echo "**** $gtex_pop already exists"
 else
         # bcftools +fill-tags recomputes AF after we remove samples
-        bcftools view --samples-file $pop_list $gtex | bcftools +fill-tags --output $gtex_pop --output-type z -- -t AF
+        bcftools view --samples-file $pop_list $gtex | bcftools +fill-tags -Oz -o $gtex_pop -- -t AF
 fi 
 
 echo "*** Done"
@@ -128,7 +129,7 @@ gtex_pop_rare=${rvdir}/gtex_${pop}_rare.vcf.gz
 if [ -f "$gtex_pop_rare" ]; then
         echo "**** $gtex_pop_rare already exists"
 else
-        bcftools view --include 'AF<0.01 & AF>0' --output-file $gtex_pop_rare --output-type z $gtex_pop
+        bcftools view --include 'AF<0.01 & AF>0' -Oz -o $gtex_pop_rare $gtex_pop
 fi
 
 echo "*** Done"
@@ -153,16 +154,14 @@ fi
 if [ -f "$gnomad_common" ]; then
         echo "**** $gnomad_common already exists"
 else
-        if [ $pop == "AFR" ]; then
-                bcftools view --regions-file $gtex_rare_bed \
-                --include 'INFO/AF_afr >= 0.01' --output-file $gnomad_common --output-type z $gnomad
-        elif [ $pop == "EUR" ]; then
-                bcftools view --regions-file $gtex_rare_bed \
-                --include 'INFO/AF_nfe >= 0.01' --output-file $gnomad_common --output-type z $gnomad
-        else
-                echo "Population is neither AFR nor EUR. Exiting"
-                exit 1
-        fi
+
+        bash code/preprocessing/rare_variants/get_gnomad_common.sh \
+        -g $gnomad \
+        -r $gtex_rare_bed \
+        -d ${rvdir}/gnomad_by_chr \
+        -p $pop \
+        -o $gnomad_common
+
 fi
 
 if [ -f "$gnomad_common_bed" ]; then

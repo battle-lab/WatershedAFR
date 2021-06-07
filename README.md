@@ -419,17 +419,6 @@ ${datadir}/data_prep
 Requires `bcftools` and `bedtools`
 
 #### European Individuals
-Rare variants file will be saved to `{datadir}/rare_variants_pop_norm/gene-EUR-rv.txt`
-
-```bash
-bash code/preprocessing/rare_variants/find_rare_variants.sh \
--d ${datadir}/rare_variants_pop_norm \
--g ${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_WholeGenomeSeq_838Indiv_Analysis_Freeze.SHAPEIT2_phased.vcf.gz \
--r ${datadir}/data_prep/gencode.v26.GRCh38.genes_padded10kb_PCandlinc_only.bed \
--l ${datadir}/data_prep/gtex_v8_wgs_individuals_EUR.txt \
--p "EUR" \
-
-```
 
 Filter with gnomAD. Rare variants file will be saved to `{datadir}/rare_variants_gnomad/gene-EUR-rv.txt`
 ```bash
@@ -444,15 +433,15 @@ bash code/preprocessing/rare_variants/find_rare_variants_gnomad.sh \
 ```
 
 #### African Individuals
-Rare variants file will be saved to `{datadir}/rare_variants_pop_norm/gene-AFR-rv.txt`
-
+Filter with gnomAD. Rare variants file will be saved to `{datadir}/rare_variants_gnomad/gene-EUR-rv.txt`
 ```bash
-bash code/preprocessing/rare_variants/find_rare_variants.sh \
--d ${datadir}/rare_variants_pop_norm \
+bash code/preprocessing/rare_variants/find_rare_variants_gnomad.sh \
+-d ${datadir}/rare_variants_gnomad \
 -g ${rawdir}/GTEx/GTEx_Analysis_2017-06-05_v8_WholeGenomeSeq_838Indiv_Analysis_Freeze.SHAPEIT2_phased.vcf.gz \
 -r ${datadir}/data_prep/gencode.v26.GRCh38.genes_padded10kb_PCandlinc_only.bed \
+-f /work-zfs/abattle4/lab_data/gnomAD_v2.1/gnomad.genomes.r2.1.1.sites.liftover_grch38.vcf.bgz \
 -l ${datadir}/data_prep/gtex_v8_wgs_individuals_AFR.txt \
--p "AFR" \
+-p "AFR" 
 
 ```
 
