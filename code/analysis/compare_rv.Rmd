@@ -1,0 +1,102 @@
+# Compare gene-individual-rv lists
+
+```{r}
+library(data.table)
+library(tidyr)
+library(dplyr)
+
+# rare variant files
+rv_ws_file = '/work-zfs/abattle4/bstrober/rare_variant/gtex_v8/splicing/input_data/variant_calls/all_rare_variants_SNPs_10kb_genebody.txt'
+rv_eur_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/rare_variants_gnomad/gene-EUR-rv.txt'
+regions_file = '/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep/gencode.v26.GRCh38.genes_padded10kb_PCandlinc_only.bed'
+
+analysis_folder = '/scratch/groups/abattle4/victor/WatershedAFR/data/analysis/'
+
+# open files
+rv_ws_raw = fread(rv_ws_file, col.names = c("Ind", "Gene", "Chrom", "Start", "End"))
+rv_eur = fread(rv_eur_file, header = TRUE)
+regions = fread(regions_file, col.names = c("Chrom","Start","End", "Gene", "Score"))
+
+# filter watershed rare variants for protein coding and lincRNA coding genes
+rv_ws = rv_ws_raw %>% filter(Gene %in% regions$Gene)
+
+
+# # genes in european not in watershed
+# eur_unique_genes = setdiff(rv_eur$Gene, rv_ws$Gene)
+# rv_eur = rv_eur %>% filter(!Gene %in% eur_unique_genes)
+
+# get gene-individual pairs
+rv_ws = rv_ws %>% mutate(pairs = paste(Gene, Ind, sep = '-'))
+rv_eur = rv_eur %>% mutate(pairs = paste(Gene, Ind, sep = '-'))
+
+# look at location of rare variants for each gene; check that they are indeed within 10 kb +/- window around the gene body
+rv_ws = arrange(rv_ws, Gene, Ind, Chrom, Start)
+rv_eur = arrange(rv_eur, Gene, Ind, Chrom, Start)
+
+write.table(rv_ws, paste0(analysis_folder, 'watershed_rv_sorted.txt'), quote = F, sep = '\t', row.names = F, col.names = T)
+write.table(rv_eur, paste0(analysis_folder, 'european_rv_sorted.txt'), quote = F, sep = '\t', row.names = F, col.names = T)
+
+
+rv_ws = fread(paste0(analysis_folder, 'watershed_rv_sorted.txt'), header = T)
+rv_eur = fread(paste0(analysis_folder, 'european_rv_sorted.txt'), header = T)
+
+rv_ws = select(rv_ws, Gene, Ind, Chrom, Start, End, pairs)
+rv_eur = select(rv_eur, Gene, Ind, Chrom, Start, End, pairs)
+
+# rv_eur is shifted by 1 back; +1 to Start and End to match with rv_ws
+rv_eur = mutate(rv_eur, Start = Start + 1, End = End + 1)
+
+# get rv in rv_eur and not in rv_ws
+rv_eur_only = setdiff(rv_eur, rv_ws)
+write.table(select(rv_eur_only, Chrom, Start), paste0(analysis_folder, 'european_rv_only.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+
+# get rv in rv_ws and not in rv_eur
+rv_ws_only = setdiff(rv_ws, rv_eur)
+write.table(select(rv_ws_only, Chrom, Start), paste0(analysis_folder, 'watershed_rv_only.txt'), quote = F, sep = '\t', row.names = F, col.names = F)
+
+# check for multiallelic sites
+get.site.count = function(af_only){
+  af_zero_pos = filter(af_only, AF == 0)$Pos
+  af_zero_count = af_only %>% filter(Pos %in% af_zero_pos) %>% count(Pos)
+  
+  double_sites = filter(af_zero_count, n == 2)$Pos
+  triple_sites = filter(af_zero_count, n == 3)$Pos
+  
+  af_double = filter(af_only, Pos %in% double_sites)
+  af_triple = filter(af_only, Pos %in% triple_sites)
+  af_single = filter(af_only, (!Pos %in% double_sites) & (!Pos %in% triple_sites))
+  
+  
+  return(list('single' = af_single, 'double' = af_double, 'triple' = af_triple))
+}
+
+# open up AF from rv_ws_only
+af_ws_only = fread(paste0(analysis_folder, 'watershed_rv_only_AF.txt'), col.names = c("Chrom", "Start", "End", "AF"))
+af_ws_only = af_ws_only %>% separate(Chrom, into = c("prefix", "num"), sep = 'chr', remove = F) %>% 
+  arrange(as.numeric(num), Start) %>% mutate(Pos = paste(Chrom,Start, sep = ':')) %>%
+  select(Chrom, Start, End, AF, Pos)
+
+ws_multi = get.site.count(af_ws_only)
+ws_single = ws_multi$single
+ws_double = ws_multi$double
+ws_triple = ws_multi$triple
+
+
+# open up AF from rv_eur_only
+af_eur_only = fread(paste0(analysis_folder, 'european_rv_only_AF.txt'), col.names = c("Chrom", "Start", "End", "AF"))
+af_eur_only = af_eur_only %>% separate(Chrom, into = c("prefix", "num"), sep = 'chr', remove = F) %>% 
+  arrange(as.numeric(num), Start) %>% mutate(Pos = paste(Chrom,Start, sep = ':')) %>%
+  select(Chrom, Start, End, AF, Pos)
+
+eur_multi = get.site.count(af_eur_only)
+eur_single = eur_multi$single
+eur_double = eur_multi$double
+eur_triple = eur_multi$triple
+
+# find pairs in both rv_eur and rv_ws_only
+pairs_eur_and_rv_ws_only = intersect(rv_eur$pairs, rv_ws_only$pairs)
+
+
+
+```
+
