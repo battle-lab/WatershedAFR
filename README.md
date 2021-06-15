@@ -420,7 +420,14 @@ Requires `bcftools` and `bedtools`
 
 #### European Individuals
 
-Filter with gnomAD. Rare variants file will be saved to `{datadir}/rare_variants_gnomad/gene-EUR-rv.txt`
+Filter with gnomAD. Rare variants file will be saved to `{datadir}/rare_variants_gnomad/gene-EUR-rv.txt`  
+arguments to `find_rare_variants_gnomad.sh`:  
+-g: raw gtex vcf  
+-r: bed file with protein coding and lnc rna coding regions (generated during outlier calling earlier)  
+-f gnomad raw file  
+-l list of individuals in population  
+-p: prefix/suffix also used to specify population. Select from "EUR" or "AFR"  
+
 ```bash
 bash code/preprocessing/rare_variants/find_rare_variants_gnomad.sh \
 -d ${datadir}/rare_variants_gnomad \
