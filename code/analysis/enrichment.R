@@ -36,6 +36,7 @@ summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_
   
   # create a subtable that will be more useful ## DO NOT CHANGE ITS ORDER AFTER THIS STEP
   pairs.df.pop <- fread(z_scores_file, header=TRUE) %>%
+    filter(Gene %in% rare_var_pairs$Gene) %>%
     mutate(easykey = paste0(Gene,Ind)) %>% # create an id column for gene-indiv pairs
     select(easykey,Gene,Ind,MedZ) %>%
     filter(Ind %in% pop_list) %>% #limit pairs.df.pop to individuals within the population
