@@ -150,6 +150,22 @@ graphEnrichment <- function(enrichment.df, title.mod.pop){
   return(enrichment.plot)
 }
 
+enrichmentContingencies <- function(enrichment.df, thresholds){
+  ctables <- lapply(thresholds, function(x){
+    cont.tmp <- enrichment.df %>% filter(sortcol == x) %>%
+      transmute(outlier_rare_pairs = outlier_rare_pairs, 
+                inlier_rare_pairs = inlier_rare_pairs,
+                outlier_not_rare = outlier_all_pairs - outlier_rare_pairs,
+                inlier_not_rare = inlier_all_pairs - inlier_rare_pairs, threshold = sortcol )
+    data.frame(Outlier = c(cont.tmp$outlier_rare_pairs,cont.tmp$outlier_not_rare),
+               Inlier = c(cont.tmp$inlier_rare_pairs, cont.tmp$inlier_not_rare),
+               rownames=c("Rare", "Not Rare"))
+    # %>% pander(caption = paste0("Threshold = ",x))
+  })
+  return(ctables)
+}
+
+
 
 enrichmentTipTail <- 
   function(
@@ -181,6 +197,8 @@ enrichmentTipTail <-
     
     gg <- graphEnrichment(enrichment.df = enrichment.df,title.mod.pop = title.mod.pop)
     
-    return(list(summary=counts.summary,enrichment=enrichment.df, plot=gg))
+    contingencies <- enrichmentContingencies(enrichment.df,thresholds)
+    
+    return(list(summary=counts.summary,enrichment=enrichment.df, plot=gg, contingencies=contingencies))
   }
 
