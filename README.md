@@ -222,6 +222,7 @@ Rename eQTL files from "cervical_c-1" to "cervical_c1" for consistency
 rename c-1 c1 ${rawdir}/GTEx/GTEx_Analysis_v8_eQTL/*c-1*
 ```
 
+### TODO update get_eqtl_genotypes to remove hardcoding
 Generate list of top eQTLs for each gene in each tissue, extract from VCF, convert to number alternative alleles
 ```bash
 bash code/preprocessing/data_prep/get_eqtl_genotypes.sh
