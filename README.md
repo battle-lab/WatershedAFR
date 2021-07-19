@@ -371,9 +371,12 @@ Rscript code/preprocessing/outlier_calling/call_outliers.R \
   --OUT=${datadir}/outlier_calling/AFR/gtexV8.AFR.outlier.controls.v8ciseQTLs.txt \
   --POP=${datadir}/data_prep/gtex_v8_wgs_individuals_AFR.txt \
   --N.PHEN=5 --ZTHRESH=3
+```
 
+#### Remove global outliers from African individuals  
+Saved to `${datadir}/outlier_calling/AFR/gtexV8.AFR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt`
 
-# Remove global outliers
+```bash
 Rscript code/preprocessing/outlier_calling/identify_global_outliers.R \
   --OUTLIERS=${datadir}/outlier_calling/AFR/gtexV8.AFR.outlier.controls.v8ciseQTLs.txt \
   --METHOD=proportion
