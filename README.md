@@ -346,7 +346,7 @@ gzip ${datadir}/data_prep/gtex_EUR_normalized_expression.txt
 
 ### Outlier calling
 
-Call outliers on all individuals
+#### Call outliers on all individuals
 
 Saved to `${datadir}/outlier_calling/test/gtexV8.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt`
 ```bash
@@ -362,7 +362,7 @@ Rscript code/preprocessing/outlier_calling/identify_global_outliers.R \
   --METHOD=proportion
 ```
 
-Call outliers on African individuals
+#### Call outliers on African individuals
 
 Saved to `${datadir}/outlier_calling/AFR/gtexV8.AFR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt`
 ```bash
@@ -379,7 +379,7 @@ Rscript code/preprocessing/outlier_calling/identify_global_outliers.R \
   --METHOD=proportion
 ```
 
-Call outliers on European individuals
+#### Call outliers on European individuals
 
 Saved to `${datadir}/outlier_calling/EUR/gtexV8.EUR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt`
 ```bash
