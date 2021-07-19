@@ -4,6 +4,8 @@
 ## Prepare matrices for input to PEER.
 
 ## Load required packages
+library(tidyr)
+library(dplyr)
 library(data.table)
 library(stringr)
 library(optparse)
@@ -33,7 +35,7 @@ annot.file = opt$ANNOT
 
 
 # read in gene-level annotation file
-annot_df <- read.table(annot.file, header=TRUE)
+annot_df <- read.table(annot.file, header=TRUE) %>% rename(GENE=GeneName)
 
 # read in zscores
 z_scores <- read.table(zscore.file, header=TRUE, check.names = FALSE)
