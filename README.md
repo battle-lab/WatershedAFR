@@ -28,6 +28,7 @@ conda env create -f environment.yml
 │   ├── models
 │   ├── outlier_calling
 │   └── rare_variants
+│   └── RIVER
 ├── raw_data
 │   ├── 1KG
 │   └── GTEx
@@ -54,6 +55,9 @@ No absolute paths are hard coded into scripts. `data` and `raw_data` directories
 rootdir=/scratch/groups/abattle4/victor/WatershedAFR
 datadir=${rootdir}/data
 rawdir=${rootdir}/raw_data
+
+## Code location for executable Watershed Repo
+watershed_dir=/scratch/groups/abattle4/jessica/RareVar_AFR/Watershed
 ```
 
 ```
@@ -456,7 +460,16 @@ bash code/preprocessing/rare_variants/find_rare_variants_gnomad.sh \
 ```
 
 
-## Training Watershed models
+## Training Watershed models  
+Prep files for RIVER and watershed.
+
+```bash
+Rscript code/preprocessing/data_prep/dataprep_watershed.R \
+--ZSCORES ${datadir}/outlier_calling/AFR/gtexV8.AFR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt \
+--ANNOT /work-zfs/abattle4/bstrober/random_projects/feature_generation_for_victor_and_jessica/river_input_gene_level.txt \
+--OUT ${datadir}/data_prep/RIVER/river_input_v8_african_all_07-19-2021.txt
+```
+
 look at RIVER folder in RIVER repo for RIVER.Rmd
 
 ## Analysis and Figures
