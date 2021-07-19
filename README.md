@@ -440,7 +440,7 @@ bash code/preprocessing/rare_variants/find_rare_variants_gnomad.sh \
 ```
 
 #### African Individuals
-Filter with gnomAD. Rare variants file will be saved to `{datadir}/rare_variants_gnomad/gene-EUR-rv.txt`
+Filter with gnomAD. Rare variants file will be saved to `{datadir}/rare_variants_gnomad/gene-AFR-rv.txt`
 ```bash
 bash code/preprocessing/rare_variants/find_rare_variants_gnomad.sh \
 -d ${datadir}/rare_variants_gnomad \
