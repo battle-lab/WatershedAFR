@@ -34,6 +34,8 @@ bcftools index --tbi $eQTL_vcf
 
 ### Convert the cis-eQTL genotypes in VCF format to the number of alternate alleles using VCFTools
 vcftools --gzvcf $eQTL_vcf --out ${datadir}/data_prep/gtex_2017-06-05_v8_genotypes_cis_eQTLs --012 --maf 0.01
+cp ${datadir}/data_prep/gtex_2017-06-05_v8_genotypes_cis_eQTLs.012 ${datadir}/data_prep/gtex_2017-06-05_v8_genotypes_cis_eQTLs.012.count
+
 
 Rscript process_gtex_v8_cis_eqtl_genotypes.R \
 --OUT ${datadir}/data_prep/gtex_2017-06-05_v8_genotypes_cis_eQTLs_012_processed.txt \

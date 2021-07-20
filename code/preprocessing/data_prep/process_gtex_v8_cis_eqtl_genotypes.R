@@ -23,18 +23,27 @@ option_list = list(make_option(c('--INDIV'), type = 'character', default = NULL,
 
 opt_parser = OptionParser(option_list = option_list)
 opt = parse_args(opt_parser)
+
+outpath = opt$OUT
+indiv_file = opt$INDIV
+pos_file = opt$POS
+count_file = opt$COUNT
+
 if (! is.null(opt$PREFIX)){
   prefix = opt$PREFIX
-  indiv_file = paste0(opt$PREFIX,'.indiv')
-  pos_file = paste0(opt$PREFIX,'.pos')
-  count_file = paste0(opt$PREFIX,'.count')
-} else {
-  indiv_file = opt$INDIV
-  pos_file = opt$POS
-  count_file = opt$COUNT
+  if (is.null(indiv_file)){ indiv_file = paste0(prefix,'.indiv')} 
+  if (is.null(pos_file )){ pos_file = paste0(prefix,'.pos')}
+  if (is.null(count_file)){ count_file = paste0(prefix,'.count')}
+  if (is.null(outpath)) {outpath = paste0(prefix,'_processed.txt')}
+} 
+# else {
+#   indiv_file = opt$INDIV
+#   pos_file = opt$POS
+#   count_file = opt$COUNT
+# }
+if (is.null(outpath) ){
+  stop("No output file path provided. Without prefix, this cannot be inferred.")
 }
-outpath = opt$OUT
-
 
 
 
