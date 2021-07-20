@@ -5,18 +5,43 @@ rm(list = ls())
 ## R script to process VCFtools output containing the allele counts for each V8 individual at the V8 cis-eQTL calls
 
 library(dplyr)
-library(reshape2)
+# library(reshape2)
 
 
-dir = '/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep'
-prefix = '/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep/gtex_2017-06-05_v8_genotypes_cis_eQTLs.012'
-outpath = paste0(dir,'/','/gtex_2017-06-05_v8_genotypes_cis_eQTLs_012_processed.txt')
+# dir = '/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep'
+# prefix = '/scratch/groups/abattle4/victor/WatershedAFR/data/data_prep/gtex_2017-06-05_v8_genotypes_cis_eQTLs.012'
+# outpath = paste0(dir,'/','/gtex_2017-06-05_v8_genotypes_cis_eQTLs_012_processed.txt')
+
 #--------------- MAIN
 
+## Read command line arguments
+option_list = list(make_option(c('--INDIV'), type = 'character', default = NULL, help = 'path to list of individuals'),
+                   make_option(c('--POS'), type = 'character', default = NULL, help = 'path to site positions'),
+                   make_option(c('--COUNT'), type = 'character', default = NULL, help = 'path to allele counts'),
+                   make_option(c('--POS'), type = 'character', default = NULL, help = 'prefix of path to all three files with .indiv , .pos, .count extensions'),
+                   make_option(c('--OUT'), type = 'character', default = NULL, help = 'output file path'))
+
+opt_parser = OptionParser(option_list = option_list)
+opt = parse_args(opt_parser)
+if (! is.null(opt$PREFIX)){
+  prefix = opt$PREFIX
+  indiv_file = paste0(opt$PREFIX,'.indiv')
+  pos_file = paste0(opt$PREFIX,'.pos')
+  count_file = paste0(opt$PREFIX,'.count')
+} else {
+  indiv_file = opt$INDIV
+  pos_file = opt$POS
+  count_file = opt$COUNT
+}
+outpath = opt$OUT
+
+
+
+
 # Load the list of individuals, the site position info, and the allele counts
-inds = read.table(paste(prefix, '.indv', sep = ''), header = F, stringsAsFactors = F)[, 1]
-pos = read.table(paste(prefix, '.pos', sep = ''), header = F)
-genos = t(as.data.frame(fread(prefix, na.strings = c('-1'))))[-1, ]
+inds = read.table(indiv_file, header = F, stringsAsFactors = F)[, 1]
+pos = read.table(pos_file, header = F)
+genos = t(as.data.frame(fread(count_file, na.strings = c('-1'))))[-1, ]
 
 # Combine the position and genotype info into a single data frame
 # Add the individual IDs as headers
