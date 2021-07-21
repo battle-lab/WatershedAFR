@@ -15,7 +15,7 @@ if (length(args) != 6) {
 }
 
 ## Define arguments
-expr_file = args[1] # PEER/Kidney_Cortex.tpm.log2.ztrans.txt
+expr_file = args[1] # PEER/Kidney_Cortex.log2.ztrans.txt
 covs_file = args[2] # PEER/combined_covariates
 peer_file = args[3] # PEER/factors.tsv from calculate_PEER_factors.R
 eqtl_call_file = args[4] # ${rawdir}/GTEx/GTEx_Analysis_v8_eQTL/Kidney_Cortex.v8.egenes.txt.gz
