@@ -29,8 +29,8 @@ rv$Chrom = as.numeric(chrom_num)
 # convert to 1-based position
 rv$Start = rv$Start + 1
 
-# sort
-rv = rv %>% arrange(Chrom, Start, Alt)
+# sort and remove duplicate rows
+rv = rv %>% arrange(Chrom, Start, Alt) %>% distinct()
 
 # write to same folder
 outfile = paste0(tools::file_path_sans_ext(rv.file), '.CADD.vcf')
