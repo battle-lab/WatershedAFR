@@ -455,16 +455,31 @@ bash code/preprocessing/rare_variants/find_rare_variants_gnomad.sh \
 
 ```
 
+## Create Annotations
+Create a file that countains all rare variants within 10kb of an outlier gene???
+
+
 
 ## Training Watershed models  
-Prep files for RIVER and watershed.
+Prep files for RIVER and Watershed.
+
+
 
 ```bash
 Rscript code/preprocessing/data_prep/dataprep_watershed.R \
 --ZSCORES ${datadir}/outlier_calling/AFR/gtexV8.AFR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt \
---ANNOT /work-zfs/abattle4/bstrober/random_projects/feature_generation_for_victor_and_jessica/river_input_gene_level.txt \
+--ANNOT /scratch/groups/abattle4/victor/GTExV6PRareVariationData/archive/processed/fully_observed_merged_outliers_0.01_genes_intersection_between_te_ase_splicing_features_filter_no_tissue_anno_N2_pairs_3.txt \
 --OUT ${datadir}/data_prep/RIVER/river_input_v8_african_all_07-19-2021.txt
 ```
+#--ANNOT /work-zfs/abattle4/bstrober/random_projects/feature_generation_for_victor_and_jessica/river_input_gene_level.txt \
+Run RIVER on prepped AFR data:
+
+```bash
+afr_all=${datadir}/data_prep/RIVER/river_input_v8_african_all_07-19-2021.txt
+Rscript ${watershed_dir}/evaluate_watershed.R --input $afr_all --number_dimensions 1 --output_prefix ${outdir}/eval_afr_all --model_name RIVER --dirichlet_prior_parameter 30 --l2_prior_parameter .001 --n2_pair_pvalue_fraction .01 --binary_pvalue_threshold .01
+
+```
+
 
 look at RIVER folder in RIVER repo for RIVER.Rmd
 
