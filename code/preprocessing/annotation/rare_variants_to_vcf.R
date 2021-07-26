@@ -27,7 +27,7 @@ chrom_num = str_remove(rv$Chrom, 'chr')
 rv$Chrom = as.numeric(chrom_num)
 
 # convert to 1-based position
-rv$Start = rv$Start + 1
+rv$Start = as.integer(rv$Start + 1)
 
 # sort and remove duplicate rows
 rv = rv %>% arrange(Chrom, Start, Alt) %>% distinct()
