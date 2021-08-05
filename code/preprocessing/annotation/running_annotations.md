@@ -21,7 +21,23 @@ sbatch ./cadd.slurm
 
 
 ## VEP (Variant Annotation Predictor)
+If you are planning on getting LoF annotations, skip this section. Running loftee will get both VEP and LoF annotations. Follow instructions to install and setup VEP [here](https://github.com/battle-lab/battle-lab-guide/blob/master/marcc_guide/software/VEP-singularity-docker.md)
 
+### Run VEP from singularity container
+```bash
+vcf_input=${datadir}/rare_variants_gnomad/gene-AFR-rv.CADD.vcf
+output=${datadir}/rare_variants_gnomad/gene-AFR-rv.vep.vcf
+
+singularity exec ensembl-vep.simg vep -i $vcf_input --format vcf --output_file $output --vcf --cache
+```
 ## LoF (Loss of Function) from loftee
+Running the loftee plugin from VEP will return both VEP and LoF annotations. Follow instructions to install and setup VEP with loftee [here](https://github.com/battle-lab/battle-lab-guide/blob/master/marcc_guide/software/VEP-singularity-docker.md)
 
+### Run VEP with loftee
+```bash
+vcf_input=${datadir}/rare_variants_gnomad/gene-AFR-rv.CADD.vcf
+output=${datadir}/rare_variants_gnomad/gene-AFR-rv.vep.loftee.vcf
+
+singularity exec ensembl-vep.simg vep -i $vcf_input --format vcf --output_file $output --vcf --cache --plugin LoF,loftee_path:$HOME/.vep/Plugins/loftee/ --dir_plugins $HOME/.vep/Plugins/loftee/
+```
 ## UCSC Conservation scores (Gerp, PhyloP, Phastcons)
