@@ -1,6 +1,8 @@
 # Annotating rare variants
 ```bash
-datadir=/scratch/groups/abattle4/victor/WatershedAFR/data/
+rootdir=/scratch/groups/abattle4/victor/WatershedAFR
+rawdir=${rootdir}/raw_data
+datadir=${rootdir}/data
 envloc=/home-2/jbonnie1@jhu.edu/.conda/envs/cadd
 cadd_loc=/scratch/groups/abattle4/jessica/RareVar_AFR/cadd/CADD-scripts
 ```
@@ -43,3 +45,42 @@ singularity exec ensembl-vep.simg vep -i $vcf_input --format vcf --output_file $
 ## UCSC Conservation scores (PhyloP 100way)
 PhyloP 100way scores can be downloaded from [here](http://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP100way/). The scores are in bigwig format (.bw). They can be converted to the bedGraph format by using [bigWigToBedGraph](http://hgdownload.soe.ucsc.edu/admin/exe/)
 
+### Downloading PhyloP as bigwig
+```bash
+wget -c -P ${rawdir} http://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP100way/hg38.phyloP100way.bw
+```
+
+### Convert to bedGraph and use tabix for querying
+```bash
+bigwig=${rawdir}/hg38.phyloP100way.bw
+annodir=${datadir}/annotation
+bedgraph=${annodir}/hg38.phyloP100way.bedGraph
+
+# convert to bedgraph
+bigWigToBedGraph $bigwig $bedgraph
+
+# split by chromosome
+for i in {1..22}
+do
+  chrom=chr$i
+  bed=${annodir}/hg38.phyloP100way.${chrom}.bed
+  bedsorted=${annodir}/hg38.phyloP100way.${chrom}.sorted.bed
+  bgzipped={annodir}/hg38.phyloP100way.${chrom}.sorted.bed.gz
+  echo "Extracting $chrom"
+  grep $chrom $bedgraph > $bed
+  
+  # sort on each split bed file
+  echo "Sorting $chrom"
+  sort --parallel=4 -T $annodir -k1,1 -k2,2n $bed > $bedsorted
+  
+  # compress with bgzip
+  echo "bgzipping $chrom"
+  bgzip -c $bedsorted > $bgzipped
+  
+  # index with tabix
+  echo "indexing $chrom"
+  tabix -p bed $bgzipped
+  
+done
+
+```
