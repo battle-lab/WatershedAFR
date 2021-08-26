@@ -40,4 +40,6 @@ output=${datadir}/rare_variants_gnomad/gene-AFR-rv.vep.loftee.vcf
 
 singularity exec ensembl-vep.simg vep -i $vcf_input --format vcf --output_file $output --vcf --cache --plugin LoF,loftee_path:$HOME/.vep/Plugins/loftee/ --dir_plugins $HOME/.vep/Plugins/loftee/
 ```
-## UCSC Conservation scores (Gerp, PhyloP, Phastcons)
+## UCSC Conservation scores (PhyloP 100way)
+PhyloP 100way scores can be downloaded from [here](http://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP100way/). The scores are in bigwig format (.bw). They can be converted to the bedGraph format by using [bigWigToBedGraph](http://hgdownload.soe.ucsc.edu/admin/exe/)
+
