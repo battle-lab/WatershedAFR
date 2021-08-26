@@ -67,7 +67,7 @@ do
   bedsorted=${annodir}/hg38.phyloP100way.${chrom}.sorted.bed
   bgzipped={annodir}/hg38.phyloP100way.${chrom}.sorted.bed.gz
   echo "Extracting $chrom"
-  grep $chrom $bedgraph > $bed
+  grep -w $chrom $bedgraph > $bed
   
   # sort on each split bed file
   echo "Sorting $chrom"
