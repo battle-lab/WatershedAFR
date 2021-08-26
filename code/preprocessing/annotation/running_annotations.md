@@ -65,7 +65,7 @@ do
   chrom=chr$i
   bed=${annodir}/hg38.phyloP100way.${chrom}.bed
   bedsorted=${annodir}/hg38.phyloP100way.${chrom}.sorted.bed
-  bgzipped={annodir}/hg38.phyloP100way.${chrom}.sorted.bed.gz
+  bgzipped=${annodir}/hg38.phyloP100way.${chrom}.sorted.bed.gz
   echo "Extracting $chrom"
   grep -w $chrom $bedgraph > $bed
   
