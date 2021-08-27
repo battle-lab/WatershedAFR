@@ -31,7 +31,8 @@ conda env create -f environment.yml
 │   └── RIVER
 ├── raw_data
 │   ├── 1KG
-│   └── GTEx
+│   ├── GTEx
+│   └── hg38.phyloP100way.bw
 └── WatershedAFR
     ├── code
     │   ├── analysis

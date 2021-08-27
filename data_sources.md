@@ -43,3 +43,9 @@ Subject annotations available from dbGaP
 `GTEx_Analysis_2017-06-05_v8_WholeGenomeSeq_838Indiv_Analysis_Freeze.SHAPEIT2_phased.vcf.gz`
 `GTEx_Analysis_2017-06-05_v8_WholeGenomeSeq_838Indiv_Analysis_Freeze.SHAPEIT2_phased.vcf.gz.tbi`
 WGS data for GTEx v8 individuals
+
+## Annotations
+
+`hg38.phyloP100way.bw`
+[(source)](http://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP100way/hg38.phyloP100way.bw)
+PhyloP 100way conservation scores from UCSC genome browser
