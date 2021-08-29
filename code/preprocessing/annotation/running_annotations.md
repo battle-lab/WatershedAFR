@@ -56,31 +56,35 @@ bigwig=${rawdir}/hg38.phyloP100way.bw
 annodir=${datadir}/annotation
 bedgraph=${annodir}/hg38.phyloP100way.bedGraph
 
-# convert to bedgraph
-bigWigToBedGraph $bigwig $bedgraph
-
 # split by chromosome
 for i in {1..22}
 do
   chrom=chr$i
   bed=${annodir}/hg38.phyloP100way.${chrom}.bed
   bedsorted=${annodir}/hg38.phyloP100way.${chrom}.sorted.bed
-  bgzipped=${annodir}/hg38.phyloP100way.${chrom}.sorted.bed.gz
-  echo "Extracting $chrom"
-  grep -w $chrom $bedgraph > $bed
-  
-  # sort on each split bed file
-  echo "Sorting $chrom"
-  sort --parallel=4 -T $annodir -k1,1 -k2,2n $bed > $bedsorted
-  
-  # compress with bgzip
-  echo "bgzipping $chrom"
-  bgzip -c $bedsorted > $bgzipped
-  
-  # index with tabix
-  echo "indexing $chrom"
-  tabix -p bed $bgzipped
-  
+ echo "Extracting $chrom"
+ grep -w $chrom $bedgraph > $bed
+
+ # sort on each split bed file
+ echo "Sorting $chrom"
+ sort --parallel=4 -T $annodir -k1,1 -k2,2n $bed > $bedsorted
+
 done
+
+# combine by chromosomes
+sortedlist=${annodir}/sorted.bed.files.list
+combinedbed=${annodir}/hg38.phyloP100way.sorted.bed
+echo "Combining sorted bed files by chromosome"
+ls ${annodir}/hg38.phyloP100way.*.sorted.bed | sort -V > $sortedlist
+cat $(grep -v '^#' $sortedlist) > $combinedbed
+
+# compress with bigzip
+bgzippedcombined=${combinedbed}.gz
+echo "bigzipping"
+bgzip -c $combinedbed > $bgzippedcombined
+# index with tabix
+echo "indexing"
+tabix -p bed $bgzippedcombined
+
 
 ```
