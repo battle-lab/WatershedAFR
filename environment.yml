@@ -1,9 +1,12 @@
-name: watershed 
+name: watershed
 channels:
+  - r
+  - conda-forge
+  - bioconda
   - defaults
 dependencies:
-  - python=3.7
-  - numpy
   - pandas
-
+  - numpy
+  - python=3.7
+  - pysam
 
