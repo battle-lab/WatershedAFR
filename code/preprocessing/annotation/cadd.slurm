@@ -1,9 +1,9 @@
 #!/bin/bash -l
 #SBATCH --job-name=CADD_AFR
-#SBATCH --time=10:0:0
+#SBATCH --time=24:0:0
 #SBATCH --partition=lrgmem
-#SBATCH --cpus-per-task=2
-#SBATCH --array=1-23
+#SBATCH --cpus-per-task=4
+#SBATCH --array=1-22
 
 #### load and unload modules you may need
 
