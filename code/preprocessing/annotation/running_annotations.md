@@ -65,6 +65,7 @@ Rscript rare_variants_to_bed.R --RV ${datadir}/rare_variants_gnomad/gene-AFR-rv.
 
 ### Use tabix to query scores
 Phylop scores for the rare variants are saved to ${datadir}/rare_variants_gnomad
+The following script requires `bgzip` and `tabix`, and makes use of python package `pysam`
 ```bash
 bash phylop100way.sh -b $bedgraph -r ${datadir}/rare_variants_gnomad/gene-AFR-rv.bed
 ```
