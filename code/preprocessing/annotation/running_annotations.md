@@ -50,37 +50,22 @@ PhyloP 100way scores can be downloaded from [here](http://hgdownload.soe.ucsc.ed
 wget -c -P ${rawdir} http://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP100way/hg38.phyloP100way.bw
 ```
 
-### Convert to bedGraph and use tabix for querying
+### Convert hg38.phyloP100way.bw to bedGraph format
 ```bash
 bigwig=${rawdir}/hg38.phyloP100way.bw
 annodir=${datadir}/annotation
 bedgraph=${annodir}/hg38.phyloP100way.bedGraph
-
-# convert to bedgraph
 bigWigToBedGraph $bigwig $bedgraph
-
-# split by chromosome
-for i in {1..22}
-do
-  chrom=chr$i
-  bed=${annodir}/hg38.phyloP100way.${chrom}.bed
-  bedsorted=${annodir}/hg38.phyloP100way.${chrom}.sorted.bed
-  bgzipped=${annodir}/hg38.phyloP100way.${chrom}.sorted.bed.gz
-  echo "Extracting $chrom"
-  grep -w $chrom $bedgraph > $bed
-  
-  # sort on each split bed file
-  echo "Sorting $chrom"
-  sort --parallel=4 -T $annodir -k1,1 -k2,2n $bed > $bedsorted
-  
-  # compress with bgzip
-  echo "bgzipping $chrom"
-  bgzip -c $bedsorted > $bgzipped
-  
-  # index with tabix
-  echo "indexing $chrom"
-  tabix -p bed $bgzipped
-  
-done
-
 ```
+
+### Convert rare variants to bed format
+```bash
+Rscript rare_variants_to_bed.R --RV ${datadir}/rare_variants_gnomad/gene-AFR-rv.txt
+```
+
+### Use tabix to query scores
+Phylop scores for the rare variants are saved to ${datadir}/rare_variants_gnomad
+```bash
+bash phylop100way.sh -b $bedgraph -r ${datadir}/rare_variants_gnomad/gene-AFR-rv.bed
+```
+
