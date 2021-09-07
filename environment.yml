@@ -9,4 +9,5 @@ dependencies:
   - numpy
   - python=3.7
   - pysam
+  - nb_conda_kernels
 
