@@ -72,7 +72,7 @@ summarizeRareInlierOutlier <- function(pop_subset_file, z_scores_file, rare_var_
       group_by(Gene) %>% 
       mutate(
         OutlierGenePairs = sum(outlier == "outlier",na.rm = T),
-        GeneKeep = OutlierGenePairs > 0) %>%
+        GeneKeep = OutlierGenePairs > 0) %>% # limit analysis to genes with at least 1 outlier individual
       ungroup() %>%
       filter(GeneKeep)
     # cbind(pairs.df.pop, all.pairs.thresh[[t]]) %>% 
