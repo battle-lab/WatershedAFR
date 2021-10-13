@@ -9,7 +9,6 @@
 ## Col6: Ref
 ## Col7: Alt
 
-## Col1 is restricted to genes that have at least one multi-tissue outlier individual
 ## Col2 is all individuals that have at least one rare variant within 10kb +/- window
 ## around the gene in that row
 ## Col3 and Col4 follow bed coordinates of "0-start, half-open"
