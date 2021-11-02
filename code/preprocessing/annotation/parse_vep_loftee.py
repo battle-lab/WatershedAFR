@@ -81,7 +81,6 @@ def vcf_to_dataframe(vcf_filepath):
     # Parse info from vcf into dataframe
     df_list = []
     cur_chrom = None
-    write_path_list = []
 
     for i, rec in enumerate(vcf.fetch()):
 
@@ -91,17 +90,10 @@ def vcf_to_dataframe(vcf_filepath):
         if cur_chrom is None:  # Starting chromosome
             cur_chrom = chrom
 
-        if chrom != "chr22":
-            continue
-
-        cur_chrom = chrom
-
         if cur_chrom != chrom:  # Save and print the chromosome dataframe
             info_df = pd.concat(df_list, ignore_index=True)
 
-            write_path = (
-                vcf_filepath.split(".vcf.gz")[0] + "." + cur_chrom + ".info.tsv"
-            )
+            write_path = vcf_filepath.split(".vcf.gz")[0] + "." + cur_chrom + ".info.tsv"
             info_df.to_csv(write_path, sep="\t")
             print(f"VCF info dataframe saved to\n{write_path}")
 
@@ -115,6 +107,7 @@ def vcf_to_dataframe(vcf_filepath):
 
         df = pd.DataFrame(info_dict)
         df.insert(0, "Alt", rec.alts[0])
+        df.insert(0, "Ref", rec.ref)
         df.insert(0, "Pos", rec.pos)
         df.insert(0, "Chrom", chrom)
         df_list.append(df)
@@ -139,7 +132,7 @@ def get_annotations_from_df(info_df):
     pandas.Dataframe
     """
     # Genomic coordinates
-    coord_df = info_df[["Chrom", "Pos", "Alt", "Allele"]]
+    coord_df = info_df[["Chrom", "Pos", "Ref", "Alt"]]
     # VEP annotations
     vep_df = pd.get_dummies(info_df["Consequence"])
     # Obtain splice_region_variant from combined consequences
@@ -187,7 +180,7 @@ def test_get_annotations_from_df(info_df, anno_df):
 def dataframe_to_tidy(info_df):
     """Extracts annotations from the `Consqeuence` and `LoF` columns.
     Returns a tidy dataframe with the columns
-    Chrom | Pos | Alt | Allele | annotations...
+    Chrom | Pos | Ref | Alt | annotations...
 
     Parameters
     ----------
@@ -201,8 +194,8 @@ def dataframe_to_tidy(info_df):
     anno_list = [
         "Chrom",
         "Pos",
+        "Ref",
         "Alt",
-        "Allele",
         "3_prime_UTR_variant",
         "5_prime_UTR_variant",
         "TF_binding_site_variant",
@@ -233,7 +226,7 @@ def dataframe_to_tidy(info_df):
         # Collapse transcripts by taking maximum so we get SNV level
         # annotations
         anno_snv_df = anno_df.groupby(
-            ["Chrom", "Pos", "Alt", "Allele"], as_index=False
+            ["Chrom", "Pos", "Ref", "Alt"], as_index=False
         ).max()
 
         # Set LoF_LC to 0 if LoF_HC is 1
@@ -287,7 +280,7 @@ def main():
             anno_snv_all_df = pd.concat([anno_snv_all_df, anno_snv_df])
 
     write_path = filename.split(".vcf.gz")[0] + ".snv.tsv"
-    anno_snv_all_df.to_csv(write_path, sep="\t")
+    anno_snv_all_df.to_csv(write_path, sep="\t", index=False)
     print(f"SNV level VEP and LOFTEE annotations are saved to\n{write_path}")
 
 
