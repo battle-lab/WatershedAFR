@@ -189,7 +189,7 @@ echo "**** List samples that have each rare variant"
 
 indiv_at_rv=${rvdir}/gtex_${pop}_rare.QC.indiv.txt
 
-bcftools query -f'[%CHROM\t%POS0\t%END\t%REF\t%ALT\t%SAMPLE\n]' --include 'GT="alt"' $gtex_pop_rareQC \
+bcftools query -f'[%CHROM\t%POS0\t%END\t%REF\t%ALT\t%INFO/AF\t%SAMPLE\n]' --include 'GT="alt"' $gtex_pop_rareQC \
 > $indiv_at_rv
 
 

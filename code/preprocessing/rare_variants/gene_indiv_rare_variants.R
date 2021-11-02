@@ -8,6 +8,7 @@
 ## Col5: End
 ## Col6: Ref
 ## Col7: Alt
+## Col8: AF
 
 ## Col2 is all individuals that have at least one rare variant within 10kb +/- window
 ## around the gene in that row
@@ -34,14 +35,11 @@ outdir = opt$outdir
 rv_sites = read.table(rv_sites_file, header = FALSE, check.names = FALSE)
 
 # get relevant columns
-df = rv_sites[,c("V10", "V6", "V7", "V2", "V3", "V4", "V5")]
-colnames(df) = c("Gene","Ind","Chrom","Start","End","Ref","Alt")
+df = rv_sites[,c("V11", "V7", "V8", "V2", "V3", "V4", "V5", "V6")]
+colnames(df) = c("Gene","Ind","Chrom","Start","End","Ref","Alt", "AF")
 
 # sort by gene
 df = arrange(df, Gene)
-
-# # make each rare variant of the form chrom;position;major_allele;variant_allele
-# df = unite(df, RV, sep = ";", Chrom:Alt)
 
 # save
 filename = paste0(outdir,'/gene-', popname, '-rv.txt')
