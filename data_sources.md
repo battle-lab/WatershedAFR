@@ -3,7 +3,7 @@ An explanation of and sources of raw data.
 
 ## 1KG
 
-[(source)]http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000_genomes_project/release/20181203_biallelic_SNV/
+[(source)](http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000_genomes_project/release/20181203_biallelic_SNV/)
 WGS for 1000 Genomes release 20181203. This release has SNVs only
 
 
