@@ -14,10 +14,34 @@ opt = parse_args(opt_parser)
 
 annot.file = opt$cadd
 out.name = opt$out
+
+# "GC"
+# "CpG"
+# "SIFTval"
+# "PolyPhenVal"
+# "priPhCons"
+# "mamPhCons"
+# "verPhCons"
+# "priPhyloP"
+# "mamPhyloP"
+# "verPhyloP"
+# "bStatistic"
+# "GerpN"
+# "GerpS"
+# "RawScore"
+# "PHRED"
+
+desired_cols = c( "Consequence", "ConsScore", "ConsDetail", "GC", "CpG", "SIFTcat", "SIFTval", "PolyPhenCat", "PolyPhenVal",
+                 "priPhCons", "mamPhCons", "verPhCons", "priPhyloP", "mamPhyloP", "verPhyloP", "bStatistic", "GerpRS",
+                 "GerpN", "GerpS", "PHRED", "RawScore")
 # annot.file="/scratch/groups/abattle4/victor/WatershedAFR/data/annotation/gene-AFR-rv.CADD.chr12.tsv.gz"
 
 # open output from cadd-scripts
-annot <-fread(annot.file, skip = 1, header = TRUE)
+annot <-fread(annot.file, skip = 1, header = TRUE) 
+annot <- annot[ , ..desired_cols]
+
+# combine possibly_damaging and probably_damaging categories in PolyPhenCat
+annot$PolyPhenCat[annot$PolyPhenCat == "probably_damaging"] <- "possibly_damaging"
 
 out.annot <- annot %>% 
   tidyr::pivot_wider( names_from=PolyPhenCat, 
