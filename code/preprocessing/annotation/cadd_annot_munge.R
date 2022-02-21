@@ -31,7 +31,7 @@ out.name = opt$out
 # "RawScore"
 # "PHRED"
 
-desired_cols = c("#Chrom", "Pos", "Ref", "Alt", "Consequence", "ConsScore", "ConsDetail", "GC", "CpG", "SIFTcat", "SIFTval", "PolyPhenCat", "PolyPhenVal",
+desired_cols = c("#Chrom", "Pos", "Consequence", "ConsScore", "ConsDetail", "GC", "CpG", "SIFTcat", "SIFTval", "PolyPhenCat", "PolyPhenVal",
                  "priPhCons", "mamPhCons", "verPhCons", "priPhyloP", "mamPhyloP", "verPhyloP", "bStatistic", "GerpRS",
                  "GerpN", "GerpS", "PHRED", "RawScore")
 # annot.file="/scratch/groups/abattle4/victor/WatershedAFR/data/annotation/gene-AFR-rv.CADD.chr12.tsv.gz"
