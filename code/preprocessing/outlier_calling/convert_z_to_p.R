@@ -16,13 +16,14 @@ opt = parse_args(opt_parser)
 input.file = opt$ZFILE
 #input.file = '/scratch/groups/abattle4/victor/WatershedAFR/data/outlier_calling/AFR/gtexV8.AFR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt'
 output.file = opt$OUTFILE
-output.file = '/scratch/groups/abattle4/victor/WatershedAFR/data/outlier_calling/AFR/gtexV8.AFR.outlier.controls.v8ciseQTLs_globalOutliersRemoved_PVAL.txt'
+#output.file = '/scratch/groups/abattle4/victor/WatershedAFR/data/outlier_calling/AFR/gtexV8.AFR.outlier.controls.v8ciseQTLs_globalOutliersRemoved_PVAL.txt'
 
 # open input file
 input = fread(input.file)
 
 # select relevant columns
-input$PVAL = pnorm(input$MedZ, lower.tail=FALSE)
+input <- input %>%
+  mutate(PVAL = sign(MedZ)*2*pnorm(MedZ, lower.tail=FALSE))
 
 fwrite(input,file=output.file, sep="\t")
 
