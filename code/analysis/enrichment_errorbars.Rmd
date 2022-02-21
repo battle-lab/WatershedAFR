@@ -1,0 +1,87 @@
+---
+title: "Enrichment Error Bar Analysis"
+author: "Jessica Bonnie"
+date: "6/28/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+outliers_3_to_4<- '/scratch/groups/abattle4/victor/WatershedAFR/data/enrichment/african_outliers_only_3_to_4.rds'
+afr_outliers <- '/scratch/groups/abattle4/victor/WatershedAFR/data/enrichment/african_outliers_only.rds'
+# enrichment <- readRDS(outliers_3_to_4)
+wtshd <- '/scratch/groups/abattle4/victor/WatershedAFR/data/enrichment/watershed.rds'
+afr_with_all <-'/scratch/groups/abattle4/victor/WatershedAFR/data/enrichment/african_with_all_outliers.rds'
+```
+
+### African Americans
+
+```{r afr}
+afr.enrichment <- readRDS(afr_outliers)
+
+afr.enrichment$enrichment %>% filter(sortcol>2.5) %>%
+ggplot( mapping=aes(x = sortcol)) + 
+  # geom_line(aes( y = inlier_all_pairs, color="Inlier All")) +
+  geom_line(aes( y = outlier_all_pairs, color="Outlier All"),size=2) +
+  geom_line(aes( y = outlier_rare_pairs, color="Outlier Rare"),size=2) +
+  ylab("Gene-Indiv Pairs") + xlab("Threshold")
++
+  # geom_line(aes( y = inlier_rare_pairs, color="Inlier Rare")) +
+  # geom_line(aes( y = numerator, color="Numerator")) +
+  # geom_line(aes( y = denominator, color="Denominator")) +
+  # scale_y_log10()
+ 
+```
+
+
+```{r afrcontingency}
+
+enrichmentContingencies <- function(enrichment.df, thresholds = c(3,4,5)){
+  lapply(thresholds, function(x){
+    cont.tmp <- enrichment.df %>% filter(sortcol == x) %>%
+      transmute(outlier_rare_pairs = outlier_rare_pairs, 
+            inlier_rare_pairs = inlier_rare_pairs,
+            outlier_not_rare = outlier_all_pairs - outlier_rare_pairs,
+         inlier_not_rare = inlier_all_pairs - inlier_rare_pairs, threshold = sortcol )
+data.frame(Outlier = c(cont.tmp$outlier_rare_pairs,cont.tmp$outlier_not_rare), Inlier = c(cont.tmp$inlier_rare_pairs, cont.tmp$inlier_not_rare),rownames=c("Rare", "Not Rare"))%>% pander(caption = paste0("Threshold = ",x))
+  })
+}
+
+# contingencies <- afr.enrichment$enrichment %>% filter(sortcol %in% c(3,4,5)) %>%
+#   transmute(outlier_rare_pairs = outlier_rare_pairs, 
+#             inlier_rare_pairs = inlier_rare_pairs,
+#             outlier_not_rare = outlier_all_pairs - outlier_rare_pairs,
+#          inlier_not_rare = inlier_all_pairs - inlier_rare_pairs, threshold = sortcol )
+# contingency3 = filter(contingencies, threshold ==3)
+# contingency4 = filter(contingencies, threshold ==4)
+# contingency5 = filter(contingencies, threshold == 5)
+# 
+# data.frame(Outlier = c(contingency3$outlier_rare_pairs,contingency3$outlier_not_rare), Inlier = c(contingency3$inlier_rare_pairs, contingency3$inlier_not_rare),rownames=c("Rare", "Not Rare"))%>% pander(caption = "Threshold = 3")
+# 
+# data.frame(Outlier = c(contingency4$outlier_rare_pairs,contingency4$outlier_not_rare), Inlier = c(contingency4$inlier_rare_pairs, contingency4$inlier_not_rare),rownames=c("Rare", "Not Rare"))%>% pander(caption = "Threshold = 4")
+# 
+# data.frame(Outlier = c(contingency5$outlier_rare_pairs,contingency5$outlier_not_rare), Inlier = c(contingency5$inlier_rare_pairs, contingency5$inlier_not_rare),rownames=c("Rare", "Not Rare"))%>% pander(caption = "Threshold = 5")
+
+enrichmentContingencies(afr.enrichment$enrichment,c(3,4,5))
+```
+
+## Watershed Repro
+```{r wtshd}
+wtshd.enrichment <- readRDS(wtshd)
+
+wtshd.enrichment$enrichment %>% filter(sortcol>2.5) %>%
+ggplot( mapping=aes(x = sortcol)) + 
+  # geom_line(aes( y = inlier_all_pairs, color="Inlier All")) +
+  geom_line(aes( y = outlier_all_pairs, color="Outlier All")) +
+  geom_line(aes( y = outlier_rare_pairs, color="Outlier Rare")) 
++
+  # geom_line(aes( y = inlier_rare_pairs, color="Inlier Rare")) +
+  # geom_line(aes( y = numerator, color="Numerator")) +
+  # geom_line(aes( y = denominator, color="Denominator"))
++
+  scale_y_log10()
+ 
+enrichmentContingencies(wtshd.enrichment$enrichment,c(3,4,5))
+
+```
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

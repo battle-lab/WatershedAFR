@@ -14,6 +14,7 @@ ml anaconda
 datadir=/scratch/groups/abattle4/victor/WatershedAFR/data/
 envloc=~/.conda/envs/cadd
 cadd_loc=/scratch/groups/abattle4/jessica/RareVar_AFR/cadd/CADD-scripts
+code_loc=/scratch/groups/abattle4/jessica/RareVar_AFR/WatershedAFR/code/preprocessing/annotation/
 
- ./cadd_slurm.sh $datadir $envloc $cadd_loc
+ ./cadd_slurm.sh $datadir $envloc $cadd_loc $code_loc
 echo "Finished with job $SLURM_JOBID"

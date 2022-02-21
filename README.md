@@ -199,19 +199,19 @@ Rscript code/preprocessing/data_prep/combine_covariates_across_tissues.R \
 For each tissue, filter for genes with > 20% individuals with TPM > 0.1 and read count > 6, Log2(tpm + 2) transfrom the data, and then z-transform.
 ```bash
 # All populations
-Rscript code/preprocessing/data_prep/preprocess_expr.R \
-  --COV ${datadir}/data_prep/gtex_v8_eQTL_covariates.txt \
-  --MAP ${datadir}/data_prep/gtex_v8_samples_tissues.txt \
-  --PEER ${datadir}/data_prep/PEER
+#Rscript code/preprocessing/data_prep/preprocess_expr.R \
+#  --COV ${datadir}/data_prep/gtex_v8_eQTL_covariates.txt \
+#  --MAP ${datadir}/data_prep/gtex_v8_samples_tissues.txt \
+#  --PEER ${datadir}/data_prep/PEER
 
-# African
+# African (min samples per tissue is 11 because there are fewer African samples. Double check that 11 is approrpiate)
 Rscript code/preprocessing/data_prep/preprocess_expr.R \
   --COV ${datadir}/data_prep/gtex_v8_eQTL_covariates.txt \
   --MAP ${datadir}/data_prep/gtex_v8_samples_tissues_AFR.txt \
   --MIN.SAMPLE 11 \
   --PEER ${datadir}/data_prep/PEER_AFR
   
-# European
+# European (script has default min sample per tissue of 70)
 Rscript code/preprocessing/data_prep/preprocess_expr.R \
   --COV ${datadir}/data_prep/gtex_v8_eQTL_covariates.txt \
   --MAP ${datadir}/data_prep/gtex_v8_samples_tissues_EUR.txt \
