@@ -47,6 +47,10 @@ singularity exec ensembl-vep.simg vep -i $vcf_input --format vcf --output_file $
 # Tabix
 bgzip $output
 tabix -p vcf $output.gz
+
+# Parsing annotations from output VCF
+vep_loftee_file=${datadir}/annotation/gene-AFR-rv.vep.loftee.vcf.gz
+python parse_vep_loftee.py --anno $vep_loftee_file
 ```
 ## UCSC Conservation scores (PhyloP 100way)
 PhyloP 100way scores can be downloaded from [here](http://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP100way/). The scores are in bigwig format (.bw). They can be converted to the bedGraph format by using [bigWigToBedGraph](http://hgdownload.soe.ucsc.edu/admin/exe/)
@@ -74,6 +78,13 @@ Phylop scores for the rare variants are saved to ${datadir}/rare_variants_gnomad
 The following script requires `bgzip` and `tabix`, and makes use of python package `pysam`
 ```bash
 bash phylop100way.sh -b $bedgraph -r ${datadir}/rare_variants_gnomad/gene-AFR-rv.bed
+```
+
+## Gencode annotations
+distTSS - absolute distance to transcription start site
+distTES - absolute distance to transcription end site
+```bash
+
 ```
 
 # Parsing annotations to be SNV level annotations
