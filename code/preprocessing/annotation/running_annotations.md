@@ -97,7 +97,16 @@ Rscript --vanilla collapse_cadd.R
 ```
 
 
+# Standardize All Annotations
 
+## This script expects only two non-numeric non-annotation columns
+
+```bash
+annotation_file=xxx
+outloc=test.tsv
+Rscript --vanilla standardize_annotation.R --ANNOT ${annotation_file} --OUTFILE ${outloc}
+
+```
 
 
 
