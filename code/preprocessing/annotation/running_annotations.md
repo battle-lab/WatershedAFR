@@ -78,11 +78,6 @@ bash phylop100way.sh -b $bedgraph -r ${datadir}/rare_variants_gnomad/gene-AFR-rv
 
 # Parsing annotations to be SNV level annotations
 
-## CADD
-```bash
-
-
-```
 
 ## VEP and LoF from LOFTEE
 ```bash
@@ -90,6 +85,19 @@ vep_loftee_file=${datadir}/annotation/gene-AFR-rv.vep.loftee.vcf.gz
 python parse_vep_loftee.py --anno $vep_loftee_file
 ```
 ## UCSC Conservation scores
+
+
+
+# Parsing annotations to be GENE level annotations  
+
+## CADD (Also combines individual chromosome annotation files while we are at it)
+```bash
+Rscript --vanilla collapse_cadd.R
+
+```
+
+
+
 
 
 
