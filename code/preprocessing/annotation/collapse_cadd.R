@@ -20,7 +20,8 @@ for (chrom in 1:22){
   # Convert genomic coordinates in vep.loftee to be consistent with rare variants (0-based)
   cadd$Pos = cadd$Pos - 1
   # Match rare variants with their annotations and rename columns
-  cadd.collapse = left_join(rv, cadd, by = c("Chrom" = "Chrom", "Start" = "Pos")) %>%
+  cadd.collapse = filter(rv, Chrom == paste0("chr",chrom)) %>%
+    left_join(., cadd, by = c("Chrom" = "Chrom", "Start" = "Pos")) %>%
     rename(GeneName = Gene, SubjectID = Ind)
 
 
