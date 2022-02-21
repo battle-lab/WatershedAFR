@@ -79,6 +79,10 @@ bash phylop100way.sh -b $bedgraph -r ${datadir}/rare_variants_gnomad/gene-AFR-rv
 # Parsing annotations to be SNV level annotations
 
 ## CADD
+```bash
+
+
+```
 
 ## VEP and LoF from LOFTEE
 ```bash
@@ -86,3 +90,16 @@ vep_loftee_file=${datadir}/annotation/gene-AFR-rv.vep.loftee.vcf.gz
 python parse_vep_loftee.py --anno $vep_loftee_file
 ```
 ## UCSC Conservation scores
+
+
+
+## Convert from z-scores to p-values (this should not be here, but for now it is.)
+
+```bash
+zscore_file=${datadir}/outlier_calling/AFR/gtexV8.AFR.outlier.controls.v8ciseQTLs_globalOutliersRemoved.txt
+outfile=${datadir}/outlier_calling/AFR/gtexV8.AFR.outlier.controls.v8ciseQTLs_globalOutliersRemoved_PVAL.txt
+zcol=MedZ
+Rscript ../outlier_calling/convert_z_to_p.R --ZFILE ${zscore_file} --OUTFILE ${outfile} --ZCOL $zcol
+
+```
+
